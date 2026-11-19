@@ -445,13 +445,20 @@ textarea{min-height:70px;resize:vertical}
         <div>
           <div class="eyebrow" style="margin-bottom:6px">Treatment and cost <span class="tag">planning placeholders</span></div>
           <div class="costs">
-            <div class="line"><span>Also close this share of the open roads' crossings (%)</span><input type="number" id="cShare" value="20" min="0" max="100" step="5"></div>
-            <div class="line"><span>Upsize a culvert on a road that stays open ($ each)</span><input type="number" id="cCul" value="30000" min="0" step="500"></div>
-            <div class="line"><span>Pipe or armor an unimproved crossing that stays open ($ each)</span><input type="number" id="cFord" value="12000" min="0" step="500"></div>
+            <div class="line"><span>Also close this share of the forest roads (%)</span><input type="number" id="cShare" value="20" min="0" max="100" step="5"></div>
+            <div class="line"><span>Share of kept culverts that need replacing (%)</span><input type="number" id="cRep" value="40" min="0" max="100" step="5"></div>
+            <div class="line"><span>Replace or upsize a culvert ($ each)</span><input type="number" id="cCul" value="35000" min="0" step="1000"></div>
+            <div class="line"><span>Pipe or armor an unimproved crossing kept open ($ each)</span><input type="number" id="cFord" value="15000" min="0" step="1000"></div>
             <div class="line"><span>Critical dip where a kept crossing could divert ($ each)</span><input type="number" id="cDip" value="2500" min="0" step="100"></div>
-            <div class="line"><span>Dig out crossing fill on closed roads ($ per m³)</span><input type="number" id="cFill" value="20" min="0" step="1"></div>
-            <div class="line"><span>Design, permits, oversight (%)</span><input type="number" id="cOH" value="20" min="0" max="200" step="5"></div>
+            <div class="line"><span>Storm-proof forest roads kept open: dips, outsloping ($ per mile)</span><input type="number" id="cStorm" value="12000" min="0" step="1000"></div>
+            <div class="line"><span>Excavate crossing fill on closed roads ($ per m³)</span><input type="number" id="cFill" value="28" min="0" step="1"></div>
+            <div class="line"><span>Close road between crossings: rip, outslope, drains ($ per mile)</span><input type="number" id="cClose" value="20000" min="0" step="1000"></div>
+            <div class="line"><span>Road assessment and treatment plan ($ per mile)</span><input type="number" id="cAss" value="4300" min="0" step="100"></div>
+            <div class="line"><span>Design, permits, oversight, contingency (%)</span><input type="number" id="cOH" value="20" min="0" max="200" step="5"></div>
           </div>
+          <details class="note" style="margin-top:6px"><summary>Where these prices come from</summary>
+            <p style="margin:6px 0 0">North Coast road projects have run about $40,000 to $100,000 per mile of decommissioned road (Redwood Creek, 2011; Mt. Baker-Snoqualmie NF), and about $64,000 per mile across the North Coast Coho Project's 151 miles of road treatment. Full recontouring in Redwood National Park runs $80,000 to $400,000 per mile. Crossing excavation is set from PWA projects at $13 to $29 per cubic yard of sediment saved (about $17 to $38 per m³). Dips ran $390 to $1,200 each in Forest Service Region 5 restoration contracts; a critical dip is deeper and armored. Road assessments ran $3,685 to $4,800 per mile in six North Coast proposals from 2020 to 2026 (North Coast Water Board). The culvert price is an estimate for a forest-road pipe with excavation and rock; fish-passage structures cost far more. All are planning figures, not bids.</p>
+          </details>
           <div class="stack" id="costStack" style="margin-top:10px"></div>
           <div class="total"><span>First-pass cost</span><b class="num" id="costTot">$0</b></div>
           <p class="note" id="costNote"></p>
@@ -983,7 +990,7 @@ inits.projects = () => {
   mapR.ready.then(async map => {
     const [xs, rd, ws] = await Promise.all([load("crossings.json"), load("roads.json"), load("watersheds.json")]);
     XS = xs;
-    addRoads(map, rd, undefined, 0.75);
+    addRoads(map, rd, undefined, 0.75); RSEG = roadSegs(rd);
     map.addSource("xs", { type: "geojson", data: xsGeo(xs) });
     map.addLayer({ id: "xs", type: "circle", source: "xs", paint: { "circle-radius": ["interpolate", ["linear"], ["zoom"], 10, ["interpolate", ["linear"], ["get", "f"], 0, 1.4, 1500, 4.5], 14, ["interpolate", ["linear"], ["get", "f"], 0, 3, 1500, 11]],
       "circle-color": ["case", ["==", ["get", "d"], 1], "#A1302B", "#FFFFFF"], "circle-stroke-color": "#2B2B2B", "circle-stroke-width": 0.5 } });
@@ -1008,6 +1015,13 @@ async function refreshProj(){
   try { APROJ = await store.list("project_sketches"); } catch (e) { $("#projStatus").textContent = "The sketch list can't be reached right now."; }
   renderProj();
 }
+// road segments as midpoints with length and class, for the road miles inside a project circle
+let RSEG = [];
+function roadSegs(rd){ const k = Math.PI / 180, out = [];
+  rd.features.forEach(f => { const c = f.properties.c, G = f.geometry, L = G.type === "LineString" ? [G.coordinates] : G.coordinates;
+    L.forEach(l => { for (let i = 1; i < l.length; i++){ const a = l[i - 1], b = l[i], x = (b[0] - a[0]) * Math.cos((a[1] + b[1]) / 2 * k) * k, y = (b[1] - a[1]) * k;
+      out.push([(a[0] + b[0]) / 2, (a[1] + b[1]) / 2, Math.hypot(x, y) * 6371000, c]); } }); });
+  return out; }
 function dist(a, b){ const k = Math.PI / 180, x = (b[0] - a[0]) * k * Math.cos((a[1] + b[1]) / 2 * k), y = (b[1] - a[1]) * k; return Math.sqrt(x * x + y * y) * 6371000; }
 function ring(c, r){ const pts = []; for (let i = 0; i <= 72; i++) { const t = i / 72 * 2 * Math.PI; pts.push([c[0] + r * Math.cos(t) / (111320 * Math.cos(c[1] * Math.PI / 180)), c[1] + r * Math.sin(t) / 110540]); } return pts; }
 function setCircle(c, r, example){
@@ -1019,28 +1033,34 @@ function setCircle(c, r, example){
   sel = { n: inside.length, cul: open.filter(x => x[2] === "c").length, uni: open.filter(x => x[2] === "u").length, div: open.filter(x => x[3] === 1).length,
     fillOpen: open.reduce((s, x) => s + x[4], 0), shut: shut.length, fillShut: shut.reduce((s, x) => s + x[4], 0),
     divAll: inside.filter(x => x[3] === 1).length, fill: inside.reduce((s, x) => s + x[4], 0), deb: inside.filter(x => x[5] === 3).length };
+  const mi = c_ => RSEG.reduce((s, q) => s + (q[3] === c_ && dist(c, [q[0], q[1]]) <= r ? q[2] : 0), 0) / 1609.34;
+  sel.miMain = mi(0); sel.miForest = mi(1); sel.miShut = mi(2) + mi(3) + mi(5);
   $("#selBig").innerHTML = `<div><b class="num">${fmt(sel.n)}</b><span>crossings inside</span></div><div><b class="num">${fmt(sel.divAll)}</b><span>could divert</span></div><div><b class="num">${fmt(sel.fill)}</b><span>m³ of fill</span></div>`;
   calc();
 }
 $("#rad").addEventListener("input", () => { if (circ) setCircle(circ.c, +$("#rad").value, !$("#exTag").hidden); });
 $("#bDraw").addEventListener("click", () => { drawMode = "center"; $("#drawHint").hidden = false; $("#drawHint").textContent = "Click the center of the project area"; });
-["cCul", "cFord", "cDip", "cShare", "cFill", "cOH"].forEach(id => $("#" + id).addEventListener("input", calc));
+["cShare", "cRep", "cCul", "cFord", "cDip", "cStorm", "cFill", "cClose", "cAss", "cOH"].forEach(id => $("#" + id).addEventListener("input", calc));
 $("#prYear").addEventListener("change", () => renderProj());
 const val = id => Math.max(0, +$("#" + id).value || 0);
 function cost(s){
-  const v = id => Math.max(0, +$("#" + id).value || 0), keep = 1 - Math.min(100, v("cShare")) / 100;
-  // each crossing gets one treatment: kept-open ones are upsized, piped or armored (plus a dip where they could divert),
-  // and crossings on roads being closed have their fill dug out
-  const a = s.cul * keep * v("cCul"), u = s.uni * keep * v("cFord"), b = s.div * keep * v("cDip");
-  const c = (s.fillShut + s.fillOpen * (1 - keep)) * v("cFill"); const oh = (a + u + b + c) * v("cOH") / 100;
-  return { a, u, b, c, oh, tot: a + u + b + c + oh, closed: Math.round(s.shut + (s.cul + s.uni) * (1 - keep)) };
+  const v = id => Math.max(0, +$("#" + id).value || 0), keep = 1 - Math.min(100, v("cShare")) / 100, rep = Math.min(100, v("cRep")) / 100;
+  // crossings: kept-open culverts are replaced where needed, unimproved crossings piped or armored, a critical dip where they
+  // could divert; crossings on roads being closed have their fill dug out. Roads: forest roads kept open are storm-proofed,
+  // closed roads get ripped and outsloped between crossings, and every road but a trail is assessed first.
+  const a = s.cul * keep * rep * v("cCul"), u = s.uni * keep * v("cFord"), b = s.div * keep * v("cDip");
+  const c = (s.fillShut + s.fillOpen * (1 - keep)) * v("cFill");
+  const miClose = s.miShut + s.miForest * (1 - keep), miStorm = s.miForest * keep, miAll = s.miMain + s.miForest + s.miShut;
+  const rd = miStorm * v("cStorm") + miClose * v("cClose"), as = miAll * v("cAss");
+  const oh = (a + u + b + c + rd) * v("cOH") / 100, tot = a + u + b + c + rd + as + oh;
+  return { a, u, b, c, rd, as, oh, tot, miAll, miClose, closed: Math.round(s.shut + (s.cul + s.uni) * (1 - keep)) };
 }
 function calc(){
   if (!sel) return; const k = cost(sel);
   $("#costTot").textContent = money(k.tot);
-  const parts = [[k.a, "var(--water)", "culverts"], [k.u, "var(--teal)", "unimproved crossings"], [k.b, "var(--fire)", "dips"], [k.c, "var(--rust)", "fill removal"], [k.oh, "var(--muted)", "design"]];
+  const parts = [[k.a, "var(--water)", "culverts"], [k.u, "var(--teal)", "unimproved crossings"], [k.b, "var(--fire)", "dips"], [k.c, "var(--rust)", "fill removal"], [k.rd, "var(--gold)", "road work"], [k.as + k.oh, "var(--muted)", "assessment and design"]];
   $("#costStack").innerHTML = k.tot ? parts.map(p => `<span title="${p[2]}" style="width:${p[0] / k.tot * 100}%;background:${p[1]}"></span>`).join("") : "";
-  $("#costNote").textContent = `${fmt(k.closed)} of ${fmt(sel.n)} crossings closed (${fmt(sel.shut)} already on closed or abandoned roads), the rest kept open. ${fmt(sel.deb)} sit on high debris-flow hazard channels. Bars: culverts, unimproved crossings, dips, fill removal, design. Unit costs are rough North Coast planning figures, not bids.`;
+  $("#costNote").textContent = `${fmt(k.closed)} of ${fmt(sel.n)} crossings closed (${fmt(sel.shut)} already on closed or abandoned roads), the rest kept open; ${fmt(Math.round(k.miAll))} miles of road in the area, ${fmt(Math.round(k.miClose))} of them closed. About ${money(k.miAll ? k.tot / k.miAll : 0)} per mile of road. ${fmt(sel.deb)} crossings sit on high debris-flow hazard channels. Bars: culverts, unimproved crossings, dips, fill removal, road work, assessment and design.`;
   if (!APROJ.length && !(LIVE && mine("project_sketches").length)) chart([]);
 }
 $("#bSaveProj").addEventListener("click", async () => {

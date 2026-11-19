@@ -719,11 +719,11 @@ function initThree(){
     $("#leg3dRoads").innerHTML = rc.map(c => `<div><b style="background:${c.color}"></b>${esc3(c.name)}</div>`).join("");
   }
   // floodplain palettes (build_rem_styles.py): REM rebuilt at 1 m, each with its own stretch and legend
-  const REMNOTE = { glow: "Color marks the valley floor, up to 5 m above the river; the glowing ground sits within a meter or two of the water.",
+  const REMNOTE = { glow: "The glow marks the valley floor, up to 5 m above the river; the brightest ground sits within a meter or two of the water.",
     copper: "Color marks the valley floor, up to 5 m above the river; the darkest ground sits within a meter or two of the water.",
     dusk: "Color marks the valley floor, up to 5 m above the river, shifting from teal downstream to rust upstream.",
     teal: "Color marks the valley floor, up to 5 m above the river; the darkest teal sits within a meter or two of the water." };
-  const DARK = { glow: 1 }, remTex = {};
+  const DARK = {}, remTex = {};   // palettes with dark high ground, where the main road turns cream
   let remStyle = "glow";
   function setRem(k, first){
     remStyle = k; const st = (tj.rem_styles || []).find(x => x.id === k); if (!st) return;

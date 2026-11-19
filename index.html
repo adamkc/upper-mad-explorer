@@ -1,0 +1,948 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Upper Mad River Explorer</title>
+<meta name="description" content="Lidar assessment of the Upper Mad River: forests, roads, floodplains and crossings, with community places and road-project sketches.">
+<link rel="stylesheet" href="vendor/maplibre-gl.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Inter:wght@400;500;600&display=swap">
+<style>
+
+/* Layout: a field-guide atlas. Sticky tab bar (Learn | Contribute), map-left / panel-right on wide screens, stacked on phones. */
+:root{
+  --paper:#F1EEE6; --panel:#FAF8F3; --ink:#22303A; --muted:#5A666D; --rule:#D5CFC2;
+  --water:#2F5F86; --teal:#127A7A; --teal-lt:#8CC5B8; --rust:#A44D12; --forest:#2F6B45; --fire:#A1302B; --gold:#C9952C;
+  --shade:rgba(34,48,58,.08); --focus:#2F5F86;
+  --display:"EB Garamond", "Iowan Old Style", Georgia, serif; --ui:"Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --paper:#11181C; --panel:#182227; --ink:#E6E2D6; --muted:#9DA9AE; --rule:#2C3A41;
+  --water:#7FB2D8; --teal:#5FB3A9; --teal-lt:#2F6F69; --rust:#E08A4C; --forest:#7FB58A; --fire:#E0675D; --gold:#E2B54E;
+  --shade:rgba(0,0,0,.35); --focus:#7FB2D8; color-scheme:dark } }
+:root[data-theme="dark"]{
+  --paper:#11181C; --panel:#182227; --ink:#E6E2D6; --muted:#9DA9AE; --rule:#2C3A41;
+  --water:#7FB2D8; --teal:#5FB3A9; --teal-lt:#2F6F69; --rust:#E08A4C; --forest:#7FB58A; --fire:#E0675D; --gold:#E2B54E;
+  --shade:rgba(0,0,0,.35); --focus:#7FB2D8; color-scheme:dark }
+*{box-sizing:border-box}
+html{color-scheme:light}
+body{margin:0}
+[hidden]{display:none!important}
+img{max-width:100%}
+.hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+.bmctl{display:flex}.bmctl button{width:auto!important;padding:0 9px;font:500 12px/29px Inter,system-ui,sans-serif;color:#22303A}.bmctl button+button{border-top:0!important;border-left:1px solid #ddd}.bmctl button[aria-pressed=true]{background:#22303A;color:#fff}
+.mode{font-size:12px;padding:6px 9px;border-radius:7px;background:var(--shade)}
+body{background:var(--paper);color:var(--ink);font-family:var(--ui);font-size:15px;line-height:1.55}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:30;background:var(--paper)}
+a{color:var(--water)}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+h1,h2,h3{font-family:var(--display);font-weight:500;text-wrap:balance;margin:0}
+.wrap{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.inner{max-width:1180px;margin:0 auto}
+.num{font-variant-numeric:tabular-nums}
+
+/* top bar */
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--paper);border-bottom:1px solid var(--rule)}
+.top .inner{display:flex;align-items:center;gap:20px;flex-wrap:wrap;padding-block:10px}
+.brand{font-family:var(--display);font-size:22px;line-height:1.1;white-space:nowrap}
+.brand em{font-style:italic;color:var(--water)}
+nav{display:flex;gap:18px;flex-wrap:wrap;margin-left:auto}
+.group{display:flex;align-items:center;gap:4px;flex-wrap:wrap}
+.group>span{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-right:4px}
+.tab{appearance:none;border:1px solid transparent;background:none;color:var(--ink);font:500 14px var(--ui);padding:7px 12px;border-radius:999px;cursor:pointer}
+.tab:hover{border-color:var(--rule)}
+.tab[aria-selected="true"]{background:var(--ink);color:var(--paper)}
+.view{padding-block:0 48px}
+
+/* buttons, chips, fields */
+.btn{appearance:none;border:1px solid var(--ink);background:var(--ink);color:var(--paper);font:500 13.5px var(--ui);padding:8px 14px;border-radius:8px;cursor:pointer}
+.btn.ghost{background:transparent;color:var(--ink);border-color:var(--rule)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{appearance:none;border:1px solid var(--rule);background:var(--panel);color:var(--ink);font:500 13px var(--ui);padding:6px 11px;border-radius:999px;cursor:pointer;display:inline-flex;align-items:center;gap:7px}
+.chip i{width:10px;height:10px;border-radius:50%;display:inline-block}
+.chip[aria-pressed="true"]{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
+label.f{display:grid;gap:4px;font-size:12.5px;color:var(--muted)}
+input[type=text],input[type=number],textarea,select{font:14px var(--ui);color:var(--ink);background:var(--panel);border:1px solid var(--rule);border-radius:7px;padding:7px 9px;width:100%}
+textarea{min-height:70px;resize:vertical}
+.eyebrow{font-size:11px;letter-spacing:.13em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.lede{font-family:var(--display);font-size:21px;line-height:1.4;max-width:62ch}
+.note{font-size:12.5px;color:var(--muted)}
+.tag{display:inline-block;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;font-weight:600;padding:2px 7px;border-radius:4px;background:var(--shade);color:var(--muted)}
+
+/* tab 1: river */
+.hero{position:relative;height:clamp(380px,62vh,620px);margin:0 calc(-1*max(16px,env(safe-area-inset-left,0px)));background:#0e1b26;overflow:hidden}
+.hero canvas{display:block;width:100%;height:100%}
+.hero .static{position:absolute;inset:0;background:center/cover no-repeat}
+.hero .cap{position:absolute;left:max(16px,env(safe-area-inset-left,0px));top:18px;max-width:min(520px,80%);color:#F4F1EA;text-shadow:0 1px 3px rgba(0,0,0,.55)}
+.hero .cap h1{font-size:clamp(28px,4vw,44px);line-height:1.05;margin-top:4px}
+.hero .cap .eyebrow{color:#CFE3E0}
+.hero .ctl{position:absolute;left:max(16px,env(safe-area-inset-left,0px));bottom:16px;display:flex;gap:8px;flex-wrap:wrap}
+.hero .ctl .btn{background:rgba(14,27,38,.82);border-color:rgba(244,241,234,.35);color:#F4F1EA}
+.hero .ctl .btn[aria-pressed="true"]{background:#F4F1EA;color:#0e1b26}
+.hero .key{position:absolute;right:max(16px,env(safe-area-inset-right,0px));bottom:16px;background:rgba(14,27,38,.78);color:#F4F1EA;font-size:12px;padding:8px 10px;border-radius:8px;display:grid;gap:4px}
+.hero .key b{display:inline-block;width:26px;height:9px;border-radius:2px;vertical-align:middle;margin-right:6px}
+.lab3d{position:absolute;transform:translate(-50%,-100%);font-family:var(--display);font-style:italic;font-size:17px;color:#F4F1EA;text-shadow:0 0 4px #0e1b26,0 0 8px #0e1b26;pointer-events:none;white-space:nowrap}
+.sec{padding-block:44px 8px;display:grid;gap:18px}
+.sec h2{font-size:clamp(26px,3vw,34px)}
+.cols2{display:grid;grid-template-columns:1.2fr 1fr;gap:28px;align-items:start}
+.cols2>*{min-width:0}
+.prose p{margin:0 0 12px;max-width:66ch}
+.cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.card{background:var(--panel);border:1px solid var(--rule);border-radius:12px;padding:14px;display:grid;gap:8px;align-content:start;min-width:0}
+.card h3{font-size:21px}
+.card svg{width:100%;height:auto;display:block}
+.card p{margin:0;font-size:13.5px}
+.stats{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:0;border-top:1px solid var(--rule);border-bottom:1px solid var(--rule)}
+.stat{padding:16px 14px;border-left:1px solid var(--rule);display:grid;gap:4px;align-content:start}
+.stat:first-child{border-left:0}
+.stat b{font-family:var(--display);font-weight:500;font-size:36px;line-height:1}
+.stat span{font-size:12.5px;color:var(--muted)}
+.guide{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.gstep{border-top:3px solid var(--ink);padding-top:10px;display:grid;gap:6px}
+.gstep .k{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.gstep h3{font-size:20px}
+.gstep p{margin:0;font-size:13.5px}
+.gstep button{justify-self:start}
+.slot{border:1.5px dashed var(--rule);border-radius:12px;padding:16px;display:grid;grid-template-columns:120px 1fr;gap:16px;align-items:center}
+.slot svg{width:120px;height:auto}
+.phase{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0;margin-top:4px}
+.phase div{padding:10px 12px;border-top:6px solid var(--rule);font-size:13.5px}
+.phase div.done{border-top-color:var(--teal)}
+.phase div.next{border-top-color:var(--gold)}
+.phase b{display:block;font-family:var(--display);font-size:19px;font-weight:500}
+
+/* map views */
+.split{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:0;border:1px solid var(--rule);border-radius:12px;overflow:hidden;background:var(--panel);margin-top:18px}
+.mapbox{position:relative;min-height:560px;height:72vh;max-height:820px;background:var(--paper)}
+.mapbox .map{position:absolute;inset:0}
+.side{border-left:1px solid var(--rule);padding:16px;display:grid;gap:14px;align-content:start;overflow:auto;max-height:820px;min-width:0}
+.side h2{font-size:26px}
+.big{display:flex;gap:18px;flex-wrap:wrap}
+.big div b{font-family:var(--display);font-weight:500;font-size:32px;line-height:1;display:block}
+.big div span{font-size:12px;color:var(--muted)}
+.legend{display:grid;gap:5px;font-size:13px}
+.legend i{display:inline-block;width:22px;height:10px;border-radius:2px;margin-right:8px;vertical-align:middle}
+.legend i.dot{width:10px;height:10px;border-radius:50%}
+.legend i.line{height:3px}
+.toplist{display:grid;gap:4px;margin:0;padding:0;list-style:none}
+.toplist button{all:unset;cursor:pointer;display:grid;grid-template-columns:22px 1fr auto;gap:8px;padding:5px 6px;border-radius:6px;font-size:14px}
+.toplist button:hover,.toplist button:focus-visible{background:var(--shade)}
+.toplist .r{color:var(--muted);font-variant-numeric:tabular-nums}
+.toplist .n{font-family:var(--display);font-style:italic;font-size:16px}
+.concept svg{width:100%;height:auto;display:block}
+.seg{display:inline-flex;border:1px solid var(--rule);border-radius:8px;overflow:hidden}
+.seg button{all:unset;cursor:pointer;padding:6px 10px;font-size:13px}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+.wcard{position:absolute;left:12px;top:12px;width:min(320px,calc(100% - 24px));background:var(--panel);border:1px solid var(--rule);border-radius:10px;box-shadow:0 6px 20px var(--shade);padding:12px 14px;display:grid;gap:8px;z-index:3}
+.wcard h3{font-size:22px;font-style:italic}
+.wcard table{width:100%;border-collapse:collapse;font-size:13px}
+.wcard td{padding:3px 0;border-top:1px solid var(--rule)}
+.wcard td:last-child{text-align:right;font-variant-numeric:tabular-nums}
+.wcard .x{position:absolute;right:8px;top:6px}
+.ranks{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.ranks div{background:var(--shade);border-radius:6px;padding:5px 6px;text-align:center;font-size:11px;color:var(--muted)}
+.ranks b{display:block;font-size:17px;color:var(--ink);font-variant-numeric:tabular-nums}
+.hint{position:absolute;left:50%;top:12px;transform:translateX(-50%);background:var(--ink);color:var(--paper);padding:7px 12px;border-radius:999px;font-size:13px;z-index:3;white-space:nowrap}
+
+/* tab 3 + 4 */
+.form{display:grid;gap:10px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.plist{display:grid;gap:8px;margin:0;padding:0;list-style:none}
+.plist li{border:1px solid var(--rule);border-radius:9px;padding:9px 11px;display:grid;gap:3px;background:var(--paper)}
+.plist .t{font-family:var(--display);font-size:18px}
+.plist .m{font-size:12px;color:var(--muted)}
+.empty{border:1.5px dashed var(--rule);border-radius:10px;padding:14px;font-size:13.5px;color:var(--muted)}
+.warnbox{background:var(--shade);border-radius:9px;padding:10px 12px;font-size:12.5px}
+.costs{display:grid;gap:8px}
+.costs .line{display:grid;grid-template-columns:1fr 110px;gap:8px;align-items:center;font-size:13px}
+.costs input{text-align:right}
+.total{display:flex;justify-content:space-between;align-items:baseline;border-top:2px solid var(--ink);padding-top:8px}
+.total b{font-family:var(--display);font-size:30px;font-weight:500}
+.stack{height:14px;border-radius:4px;overflow:hidden;display:flex;background:var(--shade)}
+.chart svg{width:100%;height:auto;display:block}
+.foot{border-top:1px solid var(--rule);margin-top:40px;padding-block:18px;font-size:12.5px;color:var(--muted)}
+
+@media (max-width: 980px){
+  .split{grid-template-columns:1fr}
+  .side{border-left:0;border-top:1px solid var(--rule);max-height:none}
+  .mapbox{height:60vh;min-height:420px}
+  .cards,.guide{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .stat:nth-child(odd){border-left:0}
+  .stat{border-top:1px solid var(--rule)}
+  .cols2{grid-template-columns:1fr}
+}
+@media (max-width: 560px){
+  .cards,.guide,.phase{grid-template-columns:1fr}
+  .slot{grid-template-columns:1fr}
+  nav{margin-left:0}
+  .row2{grid-template-columns:1fr}
+}
+@media (prefers-reduced-motion: reduce){ *{scroll-behavior:auto!important;transition:none!important} }
+</style>
+
+</head>
+<body>
+<header class="top wrap">
+  <div class="inner">
+    <div class="brand">Upper Mad River <em>Explorer</em></div>
+    <nav aria-label="Sections">
+      <div class="group" role="tablist" aria-label="Learn"><span>Learn</span>
+        <button class="tab" role="tab" data-v="river" id="t-river">The river</button>
+        <button class="tab" role="tab" data-v="findings" id="t-findings">What we found</button>
+      </div>
+      <div class="group" role="tablist" aria-label="Contribute"><span>Contribute</span>
+        <button class="tab" role="tab" data-v="places" id="t-places">Your places</button>
+        <button class="tab" role="tab" data-v="projects" id="t-projects">Road projects</button>
+      </div>
+    </nav>
+  </div>
+</header>
+
+<main>
+<!-- ============ TAB 1: THE RIVER ============ -->
+<section class="view wrap" id="v-river" role="tabpanel" aria-labelledby="t-river">
+  <div class="inner">
+    <div class="hero" id="hero">
+      <div class="static" id="heroStatic"></div>
+      <canvas id="c3d" aria-label="3D view of the Mad River valley near river km 16"></canvas>
+      <div id="labs3d"></div>
+      <div class="cap">
+        <div class="eyebrow">Mad River · river km 15 to 18</div>
+        <h1>Where Barry and Van Horn creeks meet the Mad</h1>
+        <p style="margin:6px 0 0;max-width:44ch">Lidar terrain, colored by height above the river. The darkest teal sits within 2 m of the water: valley floor that could hold water again.</p>
+      </div>
+      <div class="ctl">
+        <button class="btn" id="bFly" aria-pressed="false">Fly up the river</button>
+        <button class="btn" id="bOrbit" aria-pressed="false">Look around</button>
+        <button class="btn" id="bReset">Reset view</button>
+      </div>
+      <div class="key"><div><b style="background:#0F4C6E"></b>within 2 m of the river</div><div><b style="background:#5FB3A9"></b>2 to 4 m</div><div><b style="background:#EFEBD8"></b>higher ground</div></div>
+    </div>
+
+    <div class="sec">
+      <div class="slot">
+        <svg viewBox="0 0 120 90" aria-hidden="true"><circle cx="60" cy="45" r="38" fill="none" stroke="currentColor" stroke-width="1.5" opacity=".5"/><ellipse cx="60" cy="45" rx="38" ry="12" fill="none" stroke="currentColor" stroke-width="1.2" opacity=".5"/><ellipse cx="60" cy="45" rx="14" ry="38" fill="none" stroke="currentColor" stroke-width="1.2" opacity=".5"/><circle cx="60" cy="45" r="4" fill="currentColor"/></svg>
+        <div><span class="tag">Coming soon</span><h3 style="font-size:22px;margin:4px 0">Stand on the gravel bar</h3>
+        <p class="note" style="margin:0">This spot will get a 360° photo dome from the bar below the Van Horn confluence, and a slow drone flight up the river from Ruth Lake. Until then, the 3D lidar above stands in for both: press <b>Fly up the river</b>.</p></div>
+      </div>
+    </div>
+
+    <div class="sec cols2">
+      <div class="prose">
+        <div class="eyebrow">About the project</div>
+        <h2 style="margin:4px 0 12px">A new map of an old river</h2>
+        <p class="lede">In 2022, aircraft measured every square meter of the Upper Mad, 334 km² of mountains above Ruth Lake, with laser pulses that pass through the trees to the ground.</p>
+        <p>We used that lidar to map what nobody had mapped all at once: every road, every place a road crosses a stream, the valley floors where the river could spread out again, and the forest the 2020 August Complex left standing. It burned 95% of the basin.</p>
+        <p>Ruth Lake, behind Matthews Dam, stores water for the Humboldt Bay Municipal Water District. What washes off these slopes ends up there. That makes this watershed everyone's business, including people who will never drive its roads.</p>
+        <p>This is the first piece of a larger assessment. The same toolkit will next cover the whole Mad River basin, down to the ocean.</p>
+      </div>
+      <div class="card" style="background:var(--paper)">
+        <div class="eyebrow">At a glance</div>
+        <svg viewBox="0 0 360 230" role="img" aria-label="The Upper Mad sits above Ruth Lake, which feeds the Mad River down to Humboldt Bay">
+          <path d="M318 20 C 290 60, 270 70, 240 95 S 200 140, 170 150 S 120 175, 90 190 S 50 205, 20 214" fill="none" stroke="var(--water)" stroke-width="3"/>
+          <ellipse cx="180" cy="146" rx="26" ry="9" transform="rotate(-25 180 146)" fill="var(--water)" opacity=".35"/>
+          <path d="M318 20 L 250 30 L 205 120 L 300 120 Z" fill="var(--teal)" opacity=".16" stroke="var(--teal)" stroke-dasharray="4 3"/>
+          <text x="250" y="70" font-family="EB Garamond, serif" font-size="17" fill="var(--ink)">Upper Mad</text>
+          <text x="250" y="88" font-size="11" fill="var(--muted)">this site, 334 km²</text>
+          <text x="140" y="170" font-family="EB Garamond, serif" font-style="italic" font-size="15" fill="var(--water)">Ruth Lake</text>
+          <text x="26" y="200" font-size="11" fill="var(--muted)">to Humboldt Bay</text>
+          <circle cx="20" cy="214" r="4" fill="var(--water)"/>
+        </svg>
+        <p class="note">Schematic, not to scale.</p>
+      </div>
+    </div>
+
+    <div class="sec">
+      <div class="eyebrow">Four things the lidar shows</div>
+      <div class="cards">
+        <div class="card">
+          <svg viewBox="0 0 240 130" aria-hidden="true"><path d="M0 110 C 50 100, 90 112, 140 98 S 210 104, 240 96" fill="none" stroke="var(--ink)" stroke-width="2"/>
+            <g fill="var(--forest)" opacity=".85"><path d="M40 100 l12 -40 l12 40z"/><path d="M95 104 l14 -48 l14 48z"/><path d="M160 98 l12 -42 l12 42z"/></g>
+            <g stroke="var(--rust)" stroke-width="1.4"><line x1="60" y1="0" x2="58" y2="104"/><line x1="120" y1="0" x2="112" y2="44"/><line x1="140" y1="0" x2="141" y2="99"/><line x1="190" y1="0" x2="186" y2="100"/></g>
+            <g fill="var(--rust)"><circle cx="58" cy="104" r="3"/><circle cx="141" cy="99" r="3"/><circle cx="186" cy="100" r="3"/><circle cx="112" cy="44" r="3" opacity=".5"/></g></svg>
+          <h3>It sees the ground</h3><p>Laser pulses slip between leaves. The ones that reach the soil draw the bare-earth surface, so old roads and stream channels show up under the forest.</p>
+        </div>
+        <div class="card">
+          <svg viewBox="0 0 240 130" aria-hidden="true"><path d="M0 30 L 240 105" stroke="var(--ink)" stroke-width="2"/><path d="M60 49 L 180 86" stroke="var(--rust)" stroke-width="7" opacity=".35"/>
+            <path d="M120 0 C 118 30, 122 52, 120 66" fill="none" stroke="var(--water)" stroke-width="3"/><path d="M120 66 L 170 82" stroke="var(--water)" stroke-width="3" stroke-dasharray="5 4"/><path d="M170 82 C 175 100, 168 115, 172 130" fill="none" stroke="var(--water)" stroke-width="3" stroke-dasharray="5 4"/>
+            <circle cx="120" cy="66" r="5" fill="var(--panel)" stroke="var(--rust)" stroke-width="2"/><text x="128" y="60" font-size="11" fill="var(--muted)">plugged culvert</text></svg>
+          <h3>Roads move water</h3><p>When a culvert plugs, a creek can run down the road instead of across it and cut a new gully. We checked every crossing for that risk.</p>
+        </div>
+        <div class="card">
+          <svg viewBox="0 0 240 130" aria-hidden="true"><path d="M0 20 C 40 30, 70 92, 95 100 L 150 102 C 175 96, 205 40, 240 24" fill="none" stroke="var(--ink)" stroke-width="2"/>
+            <path d="M84 84 L 165 84 L 157 98 L 90 98 Z" fill="var(--teal-lt)" opacity=".8"/><path d="M90 98 L 157 98 L 150 102 L 95 100 Z" fill="var(--teal)"/>
+            <path d="M118 100 L 128 100" stroke="var(--water)" stroke-width="4"/>
+            <line x1="200" y1="102" x2="200" y2="84" stroke="var(--muted)"/><text x="205" y="96" font-size="11" fill="var(--muted)">2 m</text><text x="205" y="84" font-size="11" fill="var(--muted)">4 m</text></svg>
+          <h3>Height above the river</h3><p>Subtract the river's level from the terrain and the valley floor lights up. Ground within 2 m of the water is where low-tech fixes like beaver dam analogs can reconnect it.</p>
+        </div>
+        <div class="card">
+          <svg viewBox="0 0 240 130" aria-hidden="true"><rect x="0" y="0" width="240" height="130" fill="var(--fire)" opacity=".22"/>
+            <path d="M30 40 C 50 20, 90 30, 85 55 S 40 80, 30 40 Z" fill="var(--forest)"/><path d="M140 70 C 160 50, 210 60, 200 95 S 150 110, 140 70 Z" fill="var(--forest)" opacity=".85"/><path d="M120 20 C 130 12, 150 18, 145 30 S 118 34, 120 20Z" fill="var(--forest)" opacity=".7"/>
+            <circle cx="95" cy="98" r="5" fill="var(--ink)"/><text x="104" y="102" font-size="11" fill="var(--ink)">homes</text></svg>
+          <h3>Islands of forest</h3><p>The 2020 fire left patches of living forest. Some sit near homes and roads, where thinning protects people; tall old stands are refugia to keep.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="sec">
+      <div class="eyebrow">By the numbers</div>
+      <div class="stats">
+        <div class="stat"><b class="num">65%</b><span>of the 1,556 km of road in the lidar is on no public map</span></div>
+        <div class="stat"><b class="num">7,567</b><span>road–stream crossings; 3 in 4 could send a creek down the road if they plug</span></div>
+        <div class="stat"><b class="num">1.7 M m³</b><span>of road fill sits at crossings, about 170,000 dump-truck loads</span></div>
+        <div class="stat"><b class="num">447 ha</b><span>of valley floor within 2 m of a channel, mostly on public land</span></div>
+        <div class="stat"><b class="num">5,754 ha</b><span>of forest the 2020 fire left standing</span></div>
+      </div>
+    </div>
+
+    <div class="sec">
+      <div class="eyebrow">How to use this site</div>
+      <h2>A user's guide</h2>
+      <div class="guide">
+        <div class="gstep"><div class="k">Learn</div><h3>The river</h3><p>You are here. Fly the river in 3D and read how the lidar works.</p></div>
+        <div class="gstep"><div class="k">Learn</div><h3>What we found</h3><p>Switch between forest, roads, floodplains and crossings. Click any creek for its numbers and its pages in the printed atlas.</p><button class="btn ghost" data-go="findings">Open the map</button></div>
+        <div class="gstep"><div class="k">Contribute</div><h3>Your places</h3><p>Pin the places you know: a swimming hole, a washed-out road, a spot elk cross. Reviewed pins go on a shared map.</p><button class="btn ghost" data-go="places">Add a place</button></div>
+        <div class="gstep"><div class="k">Contribute</div><h3>Road projects</h3><p>Circle a group of crossings, pick treatments, and see a rough cost. Reviewed sketches add up into a funding forecast.</p><button class="btn ghost" data-go="projects">Sketch a project</button></div>
+      </div>
+    </div>
+
+    <div class="sec cols2">
+      <div class="prose">
+        <div class="eyebrow">Where this is going</div>
+        <h2 style="margin:4px 0 12px">From the Upper Mad to the whole basin</h2>
+        <p>The Upper Mad is the pilot. The same lidar toolkit, the same measures and this same explorer will grow to the whole Mad River basin, 1,281 km² from the headwaters to the Pacific, so every creek can be compared with every other.</p>
+        <div class="phase"><div class="done"><b>Upper Mad River</b>312 km² · done</div><div class="next"><b>Middle Mad River</b>229 km² · next</div><div><b>Lower Mad River</b>740 km² · planned</div></div>
+        <p class="note" style="margin-top:10px">Areas are the USGS HUC10 watersheds; the pilot's lidar covers the Upper Mad plus its rim (334 km²). The order of the later phases is a planning placeholder.</p>
+        <div class="warnbox" style="margin-top:14px"><b>Screening, not survey.</b> Everything here comes from lidar and public data. None of it has been checked on the ground. It shows where to look first. Private land is summarized by watershed and is not a finding about any one property.</div>
+      </div>
+      <figure class="card" style="background:var(--paper);margin:0">
+        <div class="eyebrow">The whole Mad River basin</div>
+        <svg viewBox="0 0 340 240" role="img" aria-label="The Mad River basin: Upper Mad (done), Middle Mad and Lower Mad, with Ruth Lake and the river to the Pacific"><path d="M150.3,167.1 L154.3,169.0 L156.4,171.8 L158.4,173.2 L164.1,181.1 L164.5,182.1 L164.5,183.5 L165.4,184.9 L167.6,186.2 L168.8,187.6 L170.8,188.4 L173.3,188.5 L175.1,190.2 L175.2,193.0 L175.9,194.4 L178.0,194.2 L178.9,195.1 L180.9,195.2 L181.6,195.9 L183.1,196.1 L183.9,197.0 L184.4,199.2 L186.4,199.8 L187.5,199.6 L189.5,200.7 L189.9,202.2 L189.4,202.8 L189.2,205.0 L191.3,206.8 L191.8,207.7 L191.8,209.3 L191.2,211.2 L191.5,212.0 L191.4,213.5 L192.1,215.6 L193.0,216.4 L192.3,217.3 L192.3,217.8 L191.6,217.9 L190.4,219.2 L190.1,220.7 L190.3,222.1 L189.8,222.7 L189.4,225.0 L188.9,225.7 L187.8,226.6 L186.4,226.3 L184.7,227.8 L182.4,227.7 L180.1,225.9 L178.9,224.0 L176.5,224.1 L175.0,223.1 L173.8,221.3 L174.1,220.1 L171.6,220.0 L171.0,220.5 L168.7,220.2 L167.3,219.0 L166.8,217.9 L167.1,216.6 L167.6,216.3 L167.7,214.6 L168.6,212.5 L167.5,212.0 L166.1,212.1 L165.2,211.3 L164.2,211.8 L161.7,208.7 L161.4,207.0 L161.8,206.2 L159.8,205.1 L159.4,203.4 L158.5,202.7 L156.5,202.6 L154.5,198.3 L155.0,197.9 L154.7,194.8 L152.4,193.2 L151.2,191.2 L150.6,188.2 L149.9,187.3 L148.2,186.3 L148.4,183.8 L147.9,182.0 L146.8,180.9 L144.6,180.8 L143.1,179.4 L142.5,179.5 L141.9,178.9 L141.7,177.7 L140.1,176.8 L139.6,172.8 L138.3,171.8 L137.2,169.3 L137.4,168.5 L136.4,167.6 L136.2,166.7 L135.2,165.3 L136.1,163.3 L137.1,162.8 L137.1,162.1 L139.1,161.1 L140.8,158.7 L145.4,164.0 L150.3,167.1Z" fill="var(--teal)" fill-opacity="0.55" stroke="none"/><path d="M104.9,88.3 L105.9,88.3 L107.4,89.9 L110.7,95.2 L114.2,102.8 L115.2,103.8 L115.5,105.3 L117.9,108.8 L119.2,112.2 L121.3,115.0 L122.1,117.1 L123.7,119.4 L123.9,120.4 L123.5,121.4 L124.5,122.8 L125.5,128.0 L127.5,132.6 L130.0,135.3 L131.3,137.2 L132.2,140.9 L134.8,145.5 L135.9,148.9 L135.9,151.6 L137.0,153.2 L137.0,154.5 L137.9,155.8 L139.6,156.7 L140.7,157.9 L140.8,158.9 L139.1,161.1 L137.2,162.0 L137.1,162.8 L136.1,163.3 L135.2,165.3 L135.6,166.1 L134.8,166.5 L133.1,166.0 L133.1,165.3 L132.1,164.2 L132.1,163.2 L131.5,161.3 L130.8,160.6 L130.1,160.6 L130.3,160.0 L129.8,159.8 L129.9,158.9 L129.3,157.7 L128.0,156.6 L127.4,155.2 L127.4,154.2 L126.7,153.7 L127.5,152.5 L127.6,150.8 L126.1,149.1 L126.3,148.3 L126.1,147.2 L125.1,146.3 L125.1,145.7 L123.3,143.3 L121.5,138.8 L119.9,137.3 L118.8,136.9 L116.0,133.4 L113.0,132.7 L111.2,131.6 L109.6,131.8 L108.7,130.7 L107.1,130.5 L106.3,129.6 L101.8,129.8 L98.4,128.0 L97.6,126.4 L96.8,125.8 L98.0,125.3 L97.9,124.4 L97.1,123.9 L97.0,123.3 L96.2,123.4 L94.3,122.8 L93.9,121.2 L91.9,118.8 L91.5,117.1 L90.9,116.4 L92.2,116.9 L97.0,117.3 L98.4,118.3 L100.2,118.4 L100.7,119.5 L102.9,119.7 L104.6,120.5 L105.9,119.8 L106.2,118.5 L107.5,117.2 L107.3,116.6 L107.8,115.5 L107.3,114.2 L107.9,112.6 L107.5,112.1 L107.6,111.3 L107.1,111.1 L107.0,110.5 L106.0,110.3 L105.7,109.3 L103.5,108.3 L102.5,107.1 L101.9,105.3 L102.1,103.8 L101.1,102.0 L101.1,100.9 L102.2,101.2 L102.6,100.9 L102.6,99.9 L101.4,97.2 L101.3,95.2 L101.9,94.2 L101.4,89.6 L102.5,88.2 L104.0,87.7 L104.9,88.3Z" fill="var(--gold)" fill-opacity="0.35" stroke="none"/><path d="M43.9,12.0 L45.4,13.4 L47.4,13.0 L49.1,13.7 L51.3,16.5 L53.2,17.2 L54.5,18.2 L55.0,18.1 L55.3,19.8 L61.1,24.0 L61.2,24.7 L60.6,25.6 L61.1,26.8 L61.2,28.7 L62.1,30.6 L61.2,31.5 L60.5,33.5 L59.6,34.7 L59.6,36.1 L60.4,37.2 L60.6,40.7 L62.1,42.0 L63.7,44.3 L64.5,47.0 L67.5,49.1 L67.5,50.5 L68.5,52.1 L67.1,55.1 L67.7,57.0 L68.4,58.2 L69.7,57.9 L69.8,59.2 L70.4,59.4 L70.8,60.5 L71.5,61.1 L73.1,61.3 L72.6,62.0 L72.7,63.2 L73.1,63.7 L74.4,63.9 L74.9,64.8 L75.9,65.5 L76.6,67.8 L76.5,68.7 L77.4,70.8 L78.8,71.9 L79.2,72.8 L79.1,74.4 L79.9,75.0 L80.5,76.9 L82.0,77.8 L83.4,79.5 L83.6,80.4 L84.0,80.4 L86.1,83.2 L86.3,84.3 L87.7,84.4 L88.0,85.1 L89.1,85.9 L90.1,87.3 L91.0,87.3 L93.2,88.5 L93.3,89.4 L94.5,90.2 L94.6,91.1 L95.8,92.6 L95.9,93.4 L97.2,94.4 L98.1,96.7 L99.5,98.9 L99.5,99.4 L101.1,100.9 L101.1,102.0 L102.1,103.8 L101.9,105.3 L102.5,107.1 L103.5,108.3 L105.7,109.3 L106.0,110.3 L107.2,110.6 L107.0,110.9 L107.6,111.3 L107.5,112.1 L107.9,112.5 L107.3,114.2 L107.7,115.6 L107.3,116.6 L107.5,117.2 L106.2,118.5 L105.9,119.8 L104.9,120.4 L103.9,120.4 L102.9,119.7 L100.7,119.5 L100.2,118.4 L98.4,118.3 L97.0,117.3 L92.2,116.9 L90.8,116.2 L90.2,115.1 L89.0,115.0 L88.3,115.4 L86.1,113.9 L85.6,114.6 L84.9,113.5 L84.3,113.3 L82.9,111.1 L83.3,110.8 L83.7,108.6 L84.5,108.6 L84.7,106.7 L84.1,106.0 L83.1,105.9 L83.2,104.2 L81.2,102.3 L77.9,102.7 L74.4,101.8 L73.1,102.5 L71.2,101.7 L70.8,101.1 L70.8,100.4 L70.0,99.8 L69.7,98.8 L68.9,98.5 L66.9,99.1 L66.2,98.6 L65.7,98.1 L66.0,97.3 L65.7,96.3 L64.6,95.5 L62.1,96.8 L61.8,96.3 L59.0,95.1 L56.8,95.1 L56.9,94.4 L55.4,93.7 L55.5,93.1 L56.4,92.1 L57.2,92.0 L57.3,91.2 L58.3,90.8 L58.7,89.0 L57.9,87.2 L55.9,85.2 L55.9,84.3 L56.5,83.8 L55.8,82.7 L55.8,80.9 L54.2,80.1 L51.7,80.8 L51.1,81.4 L49.7,79.9 L49.5,79.2 L48.5,79.5 L46.7,78.7 L46.1,78.1 L46.5,77.6 L45.8,76.7 L45.8,75.3 L44.9,75.3 L42.7,72.5 L41.9,72.1 L42.0,70.2 L45.1,68.6 L44.5,67.2 L42.6,65.8 L43.3,64.0 L42.8,63.3 L42.6,62.3 L39.3,60.5 L39.2,59.3 L37.0,55.2 L37.1,54.4 L36.2,53.9 L35.0,54.1 L34.5,53.5 L34.8,52.4 L32.5,51.5 L32.3,51.1 L32.9,50.4 L32.2,48.9 L30.9,47.9 L31.0,47.1 L30.2,46.7 L30.6,45.8 L28.7,45.1 L29.3,43.7 L26.1,39.1 L26.3,38.2 L27.4,38.1 L26.9,37.1 L25.7,36.0 L25.3,34.9 L24.5,34.6 L23.6,34.6 L23.3,35.3 L20.4,35.8 L20.1,35.0 L18.1,33.3 L15.1,31.6 L12.0,31.1 L13.6,23.2 L18.1,25.3 L19.3,26.1 L19.7,27.2 L21.9,27.8 L22.6,27.6 L23.0,26.7 L22.9,25.4 L24.2,23.2 L24.0,21.7 L25.0,20.5 L25.7,18.9 L25.4,17.7 L24.7,17.2 L23.5,15.1 L24.3,14.1 L25.8,13.1 L26.8,13.8 L26.3,14.4 L27.6,15.9 L30.4,15.4 L31.5,15.5 L32.4,16.1 L33.9,15.5 L34.3,15.7 L35.1,16.4 L34.5,17.9 L36.4,19.0 L36.7,20.6 L37.7,22.5 L39.3,23.1 L40.5,20.7 L39.0,17.8 L39.0,15.8 L39.5,15.6 L39.7,14.3 L40.2,13.9 L42.5,13.4 L43.1,12.0 L43.9,12.0Z" fill="var(--rule)" fill-opacity="0.55" stroke="none"/><path d="M175.8,194.8 L175.8,195.0 M175.8,195.0 L175.8,195.0 M175.8,195.0 L175.8,195.1 M175.8,195.1 L175.7,195.1 M175.7,195.1 L175.6,195.3 M175.6,195.3 L175.6,195.3 M175.6,195.3 L175.6,195.3 M175.6,195.3 L175.4,195.4 M175.4,195.4 L175.3,195.4 M175.3,195.4 L175.2,195.4 M175.2,195.4 L175.2,195.4 M175.2,195.4 L175.1,195.4 M175.1,195.4 L175.0,195.4 M175.0,195.4 L174.8,195.4 M174.8,195.4 L174.6,195.5 M174.6,195.5 L174.4,195.6 M174.4,195.6 L174.1,195.6 M174.1,195.6 L174.0,195.7 M174.0,195.7 L174.0,195.7 M174.0,195.7 L173.9,195.7 M173.9,195.7 L173.9,195.7 M173.9,195.7 L173.9,195.8 M173.9,195.8 L173.8,195.9 M173.8,195.9 L173.7,196.0 M173.7,196.0 L173.7,196.0 M173.7,196.0 L173.5,196.1 M173.5,196.1 L173.3,196.2 M173.3,196.2 L173.2,196.2 M173.2,196.2 L173.2,196.3 M173.2,196.3 L173.2,196.3 M173.2,196.3 L173.3,196.3 M173.3,196.3 L173.3,196.4 M173.3,196.4 L173.3,196.4 M173.3,196.4 L173.3,196.4 M173.3,196.4 L173.4,196.5 M173.4,196.5 L173.5,196.6 M173.5,196.6 L173.5,196.6 M173.5,196.6 L173.5,196.8 M173.5,196.8 L173.4,196.9 M173.4,196.9 L173.5,197.0 M173.5,197.0 L173.5,197.1 M173.5,197.1 L173.6,197.2 M173.6,197.2 L173.7,197.5 M173.7,197.5 L173.8,197.5 M173.8,197.5 L173.8,197.5 M173.8,197.5 L173.9,197.7 M173.9,197.7 L173.9,197.7 M173.9,197.7 L173.9,197.8 M173.9,197.8 L173.9,197.9 M173.9,197.9 L173.9,198.1 M173.9,198.1 L173.9,198.2 M173.9,198.2 L173.9,198.2 M173.9,198.2 L173.9,198.3 M173.9,198.3 L174.0,198.4 M174.0,198.4 L174.0,198.5 M174.0,198.5 L174.0,198.6 M174.0,198.6 L174.0,198.7 M174.0,198.7 L174.0,198.7 M174.0,198.7 L173.9,198.8 M173.9,198.8 L173.9,198.9 M173.9,198.9 L173.9,198.9 M173.9,198.9 L173.8,199.0 M173.8,199.0 L173.8,199.1 M173.8,199.1 L173.6,199.1 M173.6,199.1 L173.4,199.2 M173.4,199.2 L173.3,199.3 M173.3,199.3 L173.3,199.3 M173.3,199.3 L173.3,199.4 M173.3,199.4 L173.2,199.6 M173.2,199.6 L173.2,199.7 M173.2,199.7 L173.2,199.8 M173.2,199.8 L173.3,199.9 M173.3,199.9 L173.4,199.9 M173.4,199.9 L173.4,199.9 M173.4,199.9 L173.5,200.0 M173.5,200.0 L173.5,200.0 M173.5,200.0 L173.5,200.1 M173.5,200.1 L173.6,200.2 M173.6,200.2 L173.6,200.3 M173.6,200.3 L173.7,200.3 M173.7,200.3 L173.9,200.5 M173.9,200.5 L173.9,200.5 M173.9,200.5 L174.0,200.7 M174.0,200.7 L174.1,200.8 M174.1,200.8 L174.3,201.1 M174.3,201.1 L174.3,201.2 M174.3,201.2 L174.6,201.6 M174.6,201.6 L174.7,201.8 M174.7,201.8 L174.8,202.0 M174.8,202.0 L174.9,202.1 M174.9,202.1 L174.9,202.3 M174.9,202.3 L175.0,202.3 M175.0,202.3 L175.0,202.3 M175.0,202.3 L175.0,202.4 M175.0,202.4 L175.0,202.4 M175.0,202.4 L175.1,202.5 M175.1,202.5 L175.2,202.5 M175.2,202.5 L175.2,202.6 M175.2,202.6 L175.3,203.0 M175.3,203.0 L175.5,203.4 M175.5,203.4 L175.5,203.6 M175.5,203.6 L175.5,203.8 M175.5,203.8 L175.5,203.9 M175.5,203.9 L175.5,203.9 M175.5,203.9 L175.5,203.9 M175.5,203.9 L175.5,204.0 M175.5,204.0 L175.4,204.1 M175.4,204.1 L175.4,204.2 M175.4,204.2 L175.2,204.7 M175.2,204.7 L175.2,204.9 M175.2,204.9 L175.1,205.1 M175.1,205.1 L175.1,205.1 M175.1,205.1 L175.1,205.2 M175.1,205.2 L175.1,205.3 M175.1,205.3 L175.1,205.4 M175.1,205.4 L175.1,205.5 M175.1,205.5 L175.1,205.5 M175.1,205.5 L175.2,205.5 M175.2,205.5 L175.2,205.5 M175.2,205.5 L175.2,205.7 M175.2,205.7 L175.3,205.8 M175.3,205.8 L175.3,206.0 M175.3,206.0 L175.3,206.2 M175.3,206.2 L175.4,206.4 M175.4,206.4 L175.4,206.6 M175.4,206.6 L175.4,206.7 M175.4,206.7 L175.4,206.8 M175.4,206.8 L175.4,206.9 M175.4,206.9 L175.4,207.0 M175.4,207.0 L175.4,207.1 M175.4,207.1 L175.4,207.2 M175.4,207.2 L175.3,207.2 M175.3,207.2 L175.3,207.3 M175.3,207.3 L175.2,207.4 M175.2,207.4 L175.2,207.4 M175.2,207.4 L175.1,207.5 M175.1,207.5 L175.1,207.5 M175.1,207.5 L175.0,207.6 M175.0,207.6 L175.0,207.7 M175.0,207.7 L175.0,207.7 M175.0,207.7 L175.0,207.8 M175.0,207.8 L175.0,207.8 M175.0,207.8 L175.0,207.9 M175.0,207.9 L175.0,207.9 M175.0,207.9 L175.0,207.9 M175.0,207.9 L175.1,208.0 M175.1,208.0 L175.1,208.1 M175.1,208.1 L175.1,208.1 M175.1,208.1 L175.2,208.2 M175.2,208.2 L175.2,208.3 M175.2,208.3 L175.3,208.4 M175.3,208.4 L175.3,208.5 M175.3,208.5 L175.3,208.6 M175.3,208.6 L175.3,208.7 M175.3,208.7 L175.3,208.7 M175.3,208.7 L175.3,208.8 M175.3,208.8 L175.3,208.8 M175.3,208.8 L175.1,209.0 M175.1,209.0 L175.0,209.2 M175.0,209.2 L175.0,209.2 M175.0,209.2 L175.0,209.2 M175.0,209.2 L174.6,209.3 M174.6,209.3 L174.5,209.5 M174.5,209.5 L174.5,209.5 M174.5,209.5 L174.4,209.6 M174.4,209.6 L174.3,209.7 M174.3,209.7 L174.3,209.7 M174.3,209.7 L174.3,209.8 M174.3,209.8 L174.2,209.8 M174.2,209.8 L174.2,209.9 M174.2,209.9 L174.1,209.9 M174.1,209.9 L174.1,210.0 M174.1,210.0 L174.0,210.0 M174.0,210.0 L173.9,209.9 M173.9,209.9 L173.8,209.9 M173.8,209.9 L173.7,210.0 M173.7,210.0 L173.6,210.0 M173.6,210.0 L173.5,210.1 M173.5,210.1 L173.5,210.2 M173.5,210.2 L173.5,210.2 M173.5,210.2 L173.4,210.3 M173.4,210.3 L173.4,210.3 M173.4,210.3 L173.2,210.4 M173.2,210.4 L173.1,210.4 M173.1,210.4 L173.1,210.5 M173.1,210.5 L172.9,210.5 M172.9,210.5 L172.8,210.6 M172.8,210.6 L172.8,210.6 M172.8,210.6 L172.8,210.7 M172.8,210.7 L172.8,210.7 M172.8,210.7 L172.8,210.8 M172.8,210.8 L172.8,210.9 M172.8,210.9 L172.8,210.9 M172.8,210.9 L172.8,210.9 M172.8,210.9 L172.8,211.0 M172.8,211.0 L172.8,211.1 M172.8,211.1 L172.7,211.1 M172.7,211.1 L172.6,211.2 M172.6,211.2 L172.6,211.2 M172.6,211.2 L172.5,211.2 M172.5,211.2 L172.4,211.3 M172.4,211.3 L172.3,211.2 M172.3,211.2 L172.2,211.2 M172.2,211.2 L172.2,211.2 M172.2,211.2 L172.2,211.2 M172.2,211.2 L172.0,211.3 M172.0,211.3 L172.0,211.3 M172.0,211.3 L172.0,211.3 M172.0,211.3 L171.9,211.5 M171.9,211.5 L171.9,211.6 M171.9,211.6 L171.7,211.7 M171.7,211.7 L171.5,211.9 M171.5,211.9 L171.5,211.9 M171.5,211.9 L171.5,212.0 M171.5,212.0 L171.5,212.0 M171.5,212.0 L171.4,212.1 M171.4,212.1 L171.4,212.2 M171.4,212.2 L171.3,212.2 M171.3,212.2 L171.2,212.3 M171.2,212.3 L171.1,212.3 M171.1,212.3 L171.0,212.3 M171.0,212.3 L170.9,212.3 M170.9,212.3 L170.8,212.2 M170.8,212.2 L170.7,212.2 M170.7,212.2 L170.6,212.1 M170.6,212.1 L170.6,212.0 M170.6,212.0 L170.6,212.0 M170.6,212.0 L170.5,212.0 M170.5,212.0 L170.4,212.0 M170.4,212.0 L170.3,212.0 M170.3,212.0 L170.2,212.0 M170.2,212.0 L170.1,212.0 M170.1,212.0 L170.1,212.1 M170.1,212.1 L169.9,212.1 M169.9,212.1 L169.9,212.1 M169.9,212.1 L169.9,212.1 M169.9,212.1 L169.9,212.1 M169.9,212.1 L169.8,212.1 M169.8,212.1 L169.7,212.2 M169.7,212.2 L169.6,212.3 M169.6,212.3 L169.6,212.4 M169.6,212.4 L169.4,212.5 M169.4,212.5 L169.3,212.5 M169.3,212.5 L169.2,212.5 M169.2,212.5 L169.1,212.4 M169.1,212.4 L169.0,212.4 M104.5,120.5 L104.5,120.5 M104.5,120.5 L104.5,120.5 M104.5,120.5 L104.4,120.4 M104.4,120.4 L104.3,120.4 M104.3,120.4 L104.1,120.4 M104.1,120.4 L104.0,120.4 M104.0,120.4 L103.9,120.4 M103.9,120.4 L103.9,120.3 M103.9,120.3 L103.7,120.2 M103.7,120.2 L103.6,120.1 M103.6,120.1 L103.6,120.1 M103.6,120.1 L103.5,120.0 M103.5,120.0 L103.4,120.0 M103.4,120.0 L103.1,119.8 M103.1,119.8 L103.1,119.8 M103.1,119.8 L102.9,119.7 M102.9,119.7 L102.7,119.7 M102.7,119.7 L102.5,119.7 M102.5,119.7 L102.2,119.7 M102.2,119.7 L102.1,119.7 M102.1,119.7 L101.9,119.7 M101.9,119.7 L101.7,119.6 M101.7,119.6 L101.5,119.6 M101.5,119.6 L101.3,119.5 M101.3,119.5 L101.3,119.5 M101.3,119.5 L101.1,119.5 M101.1,119.5 L101.0,119.5 M101.0,119.5 L101.0,119.5 M101.0,119.5 L100.8,119.5 M100.8,119.5 L100.7,119.5 M100.7,119.5 L100.7,119.4 M100.7,119.4 L100.6,119.4 M100.6,119.4 L100.6,119.3 M100.6,119.3 L100.6,119.0 M100.6,119.0 L100.6,118.9 M100.6,118.9 L100.5,118.8 M100.5,118.8 L100.4,118.7 M100.4,118.7 L100.3,118.6 M100.3,118.6 L100.3,118.6 M100.3,118.6 L100.3,118.5 M100.3,118.5 L100.2,118.4 M100.2,118.4 L100.2,118.4 M100.2,118.4 L100.2,118.4 M100.2,118.4 L100.1,118.4 M100.1,118.4 L99.8,118.4 M99.8,118.4 L99.8,118.4 M99.8,118.4 L99.7,118.4 M99.7,118.4 L99.7,118.4 M99.7,118.4 L99.6,118.4 M99.6,118.4 L99.6,118.4 M99.6,118.4 L99.5,118.5 M99.5,118.5 L99.4,118.5 M99.4,118.5 L99.3,118.4 M99.3,118.4 L99.1,118.4 M99.1,118.4 L98.9,118.4 M98.9,118.4 L98.9,118.4 M98.9,118.4 L98.7,118.3 M98.7,118.3 L98.6,118.3 M98.6,118.3 L98.4,118.4 M98.4,118.4 L98.4,118.3 M98.4,118.3 L98.2,118.3 M98.2,118.3 L98.2,118.2 M98.2,118.2 L98.1,118.1 M98.1,118.1 L98.1,118.1 M98.1,118.1 L98.1,118.0 M98.1,118.0 L98.1,117.8 M98.1,117.8 L97.9,117.7 M97.9,117.7 L97.9,117.7 M97.9,117.7 L97.6,117.5 M97.6,117.5 L97.4,117.4 M97.4,117.4 L97.0,117.3 M97.0,117.3 L96.9,117.3 M96.9,117.3 L96.9,117.3 M96.9,117.3 L96.9,117.3 M96.9,117.3 L96.8,117.3 M96.8,117.3 L96.7,117.4 M96.7,117.4 L96.6,117.4 M96.6,117.4 L96.5,117.5 M96.5,117.5 L96.4,117.5 M96.4,117.5 L96.4,117.5 M96.4,117.5 L96.3,117.5 M96.3,117.5 L96.2,117.5 M96.2,117.5 L96.0,117.4 M96.0,117.4 L95.8,117.3 M95.8,117.3 L95.7,117.3 M95.7,117.3 L95.6,117.2 M95.6,117.2 L95.6,117.1 M95.6,117.1 L95.5,117.1 M95.5,117.1 L95.4,117.2 M95.4,117.2 L95.1,117.2 M95.1,117.2 L95.0,117.1 M95.0,117.1 L94.9,117.1 M94.9,117.1 L94.8,117.0 M94.8,117.0 L94.7,117.0 M94.7,117.0 L94.4,117.0 M94.4,117.0 L94.4,117.0 M94.4,117.0 L94.2,117.0 M94.2,117.0 L94.2,117.0 M94.2,117.0 L94.2,117.0 M94.2,117.0 L94.0,117.0 M94.0,117.0 L93.6,117.0 M93.6,117.0 L93.6,117.0 M93.6,117.0 L93.5,117.0 M93.5,117.0 L93.3,117.0 M93.3,117.0 L93.2,116.9 M93.2,116.9 L93.2,116.9 M93.2,116.9 L93.1,116.9 M93.1,116.9 L92.8,116.9 M92.8,116.9 L92.4,116.9 M92.4,116.9 L92.4,116.9 M92.4,116.9 L92.2,116.9 M92.2,116.9 L92.2,116.9 M92.2,116.9 L92.1,116.9 M92.1,116.9 L91.9,116.8 M91.9,116.8 L91.7,116.6 M135.4,165.7 L135.3,165.6 M135.3,165.6 L135.3,165.6 M135.3,165.6 L135.2,165.5 M135.2,165.5 L135.2,165.4 M135.2,165.4 L135.2,165.3 M135.2,165.3 L135.3,165.1 M135.3,165.1 L135.3,165.0 M135.3,165.0 L135.4,164.8 M135.4,164.8 L135.4,164.6 M135.4,164.6 L135.5,164.4 M135.5,164.4 L135.6,164.4 M135.6,164.4 L135.7,164.3 M135.7,164.3 L135.8,164.2 M135.8,164.2 L135.8,164.1 M135.8,164.1 L135.9,163.9 M135.9,163.9 L136.0,163.7 M136.0,163.7 L136.0,163.5 M136.0,163.5 L136.0,163.4 M136.0,163.4 L136.1,163.3 M136.1,163.3 L136.2,163.2 M136.2,163.2 L136.4,163.1 M136.4,163.1 L136.6,163.0 M136.6,163.0 L136.8,162.9 M136.8,162.9 L137.0,162.9 M137.0,162.9 L137.0,162.8 M137.0,162.8 L137.1,162.8 M137.1,162.8 L137.1,162.8 M137.1,162.8 L137.1,162.7 M137.1,162.7 L137.1,162.6 M137.1,162.6 L137.0,162.5 M137.0,162.5 L137.1,162.2 M137.1,162.2 L137.1,162.1 M137.1,162.1 L137.2,162.0 M137.2,162.0 L137.4,161.9 M137.4,161.9 L137.5,161.9 M137.5,161.9 L137.6,161.8 M137.6,161.8 L138.0,161.7 M138.0,161.7 L138.1,161.6 M138.1,161.6 L138.2,161.5 M138.2,161.5 L138.3,161.5 M138.3,161.5 L138.4,161.4 M138.4,161.4 L138.5,161.4 M138.5,161.4 L138.6,161.4 M138.6,161.4 L138.6,161.4 M138.6,161.4 L138.7,161.4 M138.7,161.4 L138.7,161.4 M138.7,161.4 L138.9,161.3 M138.9,161.3 L139.0,161.2 M139.0,161.2 L139.0,161.2 M139.0,161.2 L139.1,161.1 M139.1,161.1 L139.1,161.0 M139.1,161.0 L139.2,161.0 M139.2,161.0 L139.2,160.9 M139.2,160.9 L139.3,160.8 M139.3,160.8 L139.4,160.7 M139.4,160.7 L139.5,160.5 M139.5,160.5 L139.6,160.5 M139.6,160.5 L139.6,160.4 M139.6,160.4 L139.7,160.3 M139.7,160.3 L139.8,160.2 M139.8,160.2 L139.8,160.2 M139.8,160.2 L139.8,160.1 M139.8,160.1 L139.8,160.0 M139.8,160.0 L139.8,159.9 M139.8,159.9 L139.9,159.8 M139.9,159.8 L139.9,159.7 M139.9,159.7 L139.9,159.6 M139.9,159.6 L140.0,159.6 M140.0,159.6 L140.1,159.5 M140.1,159.5 L140.2,159.4 M140.2,159.4 L140.2,159.4 M140.2,159.4 L140.4,159.3 M140.4,159.3 L140.5,159.1 M140.5,159.1 L140.5,159.1 M140.5,159.1 L140.6,159.1 M124.5,125.8 L124.3,125.8 M124.3,125.8 L124.1,125.7 M124.1,125.7 L124.0,125.7 M124.0,125.7 L124.0,125.7 M124.0,125.7 L123.9,125.7 M123.9,125.7 L123.8,125.7 M123.8,125.7 L123.8,125.7 M123.8,125.7 L123.7,125.7 M123.7,125.7 L123.6,125.7 M123.6,125.7 L123.5,125.7 M123.5,125.7 L123.4,125.7 M123.4,125.7 L123.4,125.8 M123.4,125.8 L123.4,125.8 M123.4,125.8 L123.4,125.8 M123.4,125.8 L123.3,125.9 M123.3,125.9 L123.2,125.9 M123.2,125.9 L123.1,125.9 M123.1,125.9 L123.0,125.9 M123.0,125.9 L122.9,126.0 M122.9,126.0 L122.8,126.0 M122.8,126.0 L122.6,126.1 M122.6,126.1 L122.5,126.1 M122.5,126.1 L122.3,126.1 M122.3,126.1 L122.3,126.1 M122.3,126.1 L122.2,126.2 M122.2,126.2 L121.9,126.2 M121.9,126.2 L121.8,126.2 M121.8,126.2 L121.7,126.2 M121.7,126.2 L121.6,126.2 M121.6,126.2 L121.6,126.1 M121.6,126.1 L121.4,126.1 M121.4,126.1 L121.3,126.2 M121.3,126.2 L121.1,126.3 M121.1,126.3 L121.0,126.3 M121.0,126.3 L121.0,126.3 M121.0,126.3 L120.7,126.3 M120.7,126.3 L120.6,126.3 M120.6,126.3 L120.4,126.3 M120.4,126.3 L120.4,126.3 M120.4,126.3 L120.3,126.3 M120.3,126.3 L120.3,126.3 M120.3,126.3 L120.3,126.3 M120.3,126.3 L120.2,126.3 M120.2,126.3 L120.2,126.2 M120.2,126.2 L120.2,126.2 M120.2,126.2 L120.0,126.1 M120.0,126.1 L120.0,126.0 M120.0,126.0 L119.9,126.0 M119.9,126.0 L119.9,126.0 M119.9,126.0 L119.8,125.9 M119.8,125.9 L119.7,125.9 M119.7,125.9 L119.5,125.8 M119.5,125.8 L119.4,125.8 M119.4,125.8 L119.3,125.9 M119.3,125.9 L119.1,125.9 M119.1,125.9 L118.9,125.9 M118.9,125.9 L118.8,125.9 M118.8,125.9 L118.6,125.8 M118.6,125.8 L118.6,125.8 M118.6,125.8 L118.6,125.8 M118.6,125.8 L118.5,125.8 M118.5,125.8 L118.4,125.9 M118.4,125.9 L118.4,125.9 M118.4,125.9 L118.4,125.9 M118.4,125.9 L118.3,125.9 M118.3,125.9 L118.1,125.9 M118.1,125.9 L118.0,125.8 M118.0,125.8 L117.9,125.8 M117.9,125.8 L117.8,125.8 M117.8,125.8 L117.8,125.8 M117.8,125.8 L117.8,125.8 M117.8,125.8 L117.7,125.8 M117.7,125.8 L117.6,125.8 M117.6,125.8 L117.5,125.8 M117.5,125.8 L117.4,125.7 M117.4,125.7 L117.3,125.7 M117.3,125.7 L117.2,125.6 M117.2,125.6 L117.1,125.6 M117.1,125.6 L117.1,125.6 M117.1,125.6 L117.0,125.6 M117.0,125.6 L116.9,125.6 M116.9,125.6 L116.8,125.5 M116.8,125.5 L116.7,125.5 M116.7,125.5 L116.6,125.5 M116.6,125.5 L116.6,125.4 M116.6,125.4 L116.5,125.4 M116.5,125.4 L116.4,125.4 M116.4,125.4 L116.3,125.5 M116.3,125.5 L116.3,125.5 M116.3,125.5 L116.3,125.5 M116.3,125.5 L116.2,125.5 M116.2,125.5 L116.1,125.5 M116.1,125.5 L116.1,125.5 M116.1,125.5 L116.1,125.5 M116.1,125.5 L116.0,125.4 M116.0,125.4 L115.9,125.4 M115.9,125.4 L115.8,125.4 M115.8,125.4 L115.8,125.4 M115.8,125.4 L115.6,125.3 M115.6,125.3 L115.5,125.3 M115.5,125.3 L115.3,125.1 M115.3,125.1 L115.2,125.1 M115.2,125.1 L115.2,125.1 M115.2,125.1 L115.0,125.0 M115.0,125.0 L114.8,124.9 M114.8,124.9 L114.7,124.8 M114.7,124.8 L114.5,124.8 M114.5,124.8 L114.3,124.8 M114.3,124.8 L114.3,124.8 M114.3,124.8 L114.2,124.9 M114.2,124.9 L114.0,124.9 M114.0,124.9 L113.9,124.9 M113.9,124.9 L113.7,125.0 M113.7,125.0 L113.6,125.0 M113.6,125.0 L113.5,125.0 M113.5,125.0 L113.5,125.0 M113.5,125.0 L113.4,125.0 M113.4,125.0 L113.3,125.0 M113.3,125.0 L113.2,125.0 M113.2,125.0 L113.0,124.9 M113.0,124.9 L112.9,124.9 M112.9,124.9 L112.7,124.9 M112.7,124.9 L112.6,124.9 M112.6,124.9 L112.4,124.9 M112.4,124.9 L112.4,124.9 M112.4,124.9 L112.3,124.8 M112.3,124.8 L112.3,124.8 M112.3,124.8 L112.2,124.8 M112.2,124.8 L112.2,124.8 M112.2,124.8 L112.1,124.8 M112.1,124.8 L112.1,124.8 M112.1,124.8 L112.0,124.8 M112.0,124.8 L111.9,124.9 M111.9,124.9 L111.9,124.9 M111.9,124.9 L111.9,125.0 M111.9,125.0 L111.8,125.1 M111.8,125.1 L111.8,125.1 M111.8,125.1 L111.7,125.1 M111.7,125.1 L111.6,125.2 M111.6,125.2 L111.6,125.2 M111.6,125.2 L111.5,125.2 M111.5,125.2 L111.4,125.3 M111.4,125.3 L111.4,125.2 M111.4,125.2 L111.3,125.2 M111.3,125.2 L111.3,125.2 M111.3,125.2 L111.2,125.1 M111.2,125.1 L111.1,124.9 M111.1,124.9 L111.0,124.8 M111.0,124.8 L111.0,124.8 M111.0,124.8 L111.0,124.8 M111.0,124.8 L110.9,124.7 M110.9,124.7 L110.7,124.6 M110.7,124.6 L110.5,124.5 M110.5,124.5 L110.5,124.5 M110.5,124.5 L110.4,124.4 M110.4,124.4 L110.3,124.3 M110.3,124.3 L110.1,124.2 M110.1,124.2 L109.9,124.1 M109.9,124.1 L109.8,124.2 M109.8,124.2 L109.7,124.2 M109.7,124.2 L109.7,124.2 M109.7,124.2 L109.6,124.2 M109.6,124.2 L109.5,124.3 M109.5,124.3 L109.4,124.3 M109.4,124.3 L109.4,124.3 M109.4,124.3 L109.3,124.3 M109.3,124.3 L109.2,124.3 M109.2,124.3 L109.2,124.3 M109.2,124.3 L109.0,124.1 M109.0,124.1 L108.7,124.0 M108.7,124.0 L108.4,123.9 M108.4,123.9 L108.3,123.8 M108.3,123.8 L108.1,123.8 M108.1,123.8 L108.0,123.7 M108.0,123.7 L107.8,123.6 M107.8,123.6 L107.5,123.6 M107.5,123.6 L107.3,123.4 M107.3,123.4 L107.2,123.3 M107.2,123.3 L107.2,123.3 M107.2,123.3 L107.0,123.2 M107.0,123.2 L106.9,123.2 M106.9,123.2 L106.9,123.1 M106.9,123.1 L106.9,123.1 M106.9,123.1 L106.8,123.2 M106.8,123.2 L106.7,123.2 M106.7,123.2 L106.7,123.1 M106.7,123.1 L106.6,123.1 M106.6,123.1 L106.5,122.9 M106.5,122.9 L106.2,122.8 M106.2,122.8 L106.1,122.8 M106.1,122.8 L106.1,122.7 M106.1,122.7 L106.0,122.7 M106.0,122.7 L106.0,122.7 M106.0,122.7 L105.9,122.7 M105.9,122.7 L105.9,122.7 M105.9,122.7 L105.8,122.7 M105.8,122.7 L105.8,122.8 M105.8,122.8 L105.7,122.8 M105.7,122.8 L105.6,122.8 M105.6,122.8 L105.5,122.8 M105.5,122.8 L105.3,122.8 M105.3,122.8 L105.2,122.8 M105.2,122.8 L105.0,122.7 M105.0,122.7 L104.9,122.7 M104.9,122.7 L104.8,122.8 M104.8,122.8 L104.7,122.7 M104.7,122.7 L104.7,122.7 M104.7,122.7 L104.6,122.6 M104.6,122.6 L104.5,122.5 M104.5,122.5 L104.5,122.5 M104.5,122.5 L104.4,122.4 M104.4,122.4 L104.4,122.4 M104.4,122.4 L104.4,122.3 M104.4,122.3 L104.4,122.2 M104.4,122.2 L104.4,122.1 M104.4,122.1 L104.4,122.1 M104.4,122.1 L104.4,122.0 M104.4,122.0 L104.4,122.0 M104.4,122.0 L104.4,121.9 M104.4,121.9 L104.4,121.8 M104.4,121.8 L104.4,121.8 M104.4,121.8 L104.5,121.8 M104.5,121.8 L104.5,121.7 M104.5,121.7 L104.5,121.6 M104.5,121.6 L104.5,121.5 M104.5,121.5 L104.5,121.5 M104.5,121.5 L104.5,121.4 M104.5,121.4 L104.5,121.4 M104.5,121.4 L104.5,121.3 M104.5,121.3 L104.5,121.3 M104.5,121.3 L104.5,121.2 M104.5,121.2 L104.6,121.0 M104.6,121.0 L104.6,120.9 M104.6,120.9 L104.6,120.9 M104.6,120.9 L104.6,120.7 M104.6,120.7 L104.6,120.7 M104.6,120.7 L104.6,120.7 M104.6,120.7 L104.6,120.6 M104.6,120.6 L104.5,120.5 M162.9,180.4 L162.7,180.5 M162.7,180.5 L162.6,180.5 M162.6,180.5 L162.5,180.6 M162.5,180.6 L162.4,180.6 M162.4,180.6 L162.3,180.7 M162.3,180.7 L162.2,180.7 M162.2,180.7 L162.1,180.7 M162.1,180.7 L162.0,180.8 M162.0,180.8 L161.8,180.8 M161.8,180.8 L161.6,180.9 M161.6,180.9 L161.5,181.0 M161.5,181.0 L161.4,181.0 M161.4,181.0 L161.2,181.0 M161.2,181.0 L161.1,181.1 M161.1,181.1 L161.0,181.2 M161.0,181.2 L160.9,181.3 M160.9,181.3 L160.7,181.3 M160.7,181.3 L160.6,181.3 M160.6,181.3 L160.3,181.4 M160.3,181.4 L160.2,181.4 M160.2,181.4 L160.1,181.4 M160.1,181.4 L159.9,181.5 M159.9,181.5 L159.7,181.6 M159.7,181.6 L159.6,181.7 M159.6,181.7 L159.4,181.7 M159.4,181.7 L159.3,181.8 M159.3,181.8 L159.1,181.9 M159.1,181.9 L159.0,181.9 M159.0,181.9 L158.8,182.0 M158.8,182.0 L158.6,182.1 M158.6,182.1 L158.4,182.2 M158.4,182.2 L158.3,182.2 M158.3,182.2 L158.1,182.3 M158.1,182.3 L157.9,182.5 M157.9,182.5 L157.8,182.5 M157.8,182.5 L157.6,182.6 M157.6,182.6 L157.4,182.7 M157.4,182.7 L157.3,182.8 M157.3,182.8 L157.1,182.9 M157.1,182.9 L156.9,183.0 M156.9,183.0 L156.8,183.3 M156.8,183.3 L156.8,183.3 M156.8,183.3 L156.8,183.4 M156.8,183.4 L156.8,183.6 M156.8,183.6 L156.8,183.7 M156.8,183.7 L156.6,183.8 M156.6,183.8 L156.4,183.8 M156.4,183.8 L156.2,183.9 M156.2,183.9 L156.1,183.9 M156.1,183.9 L155.9,184.0 M155.9,184.0 L155.8,184.1 M155.8,184.1 L155.8,184.2 M155.8,184.2 L155.6,184.2 M155.6,184.2 L155.3,184.3 M155.3,184.3 L155.2,184.4 M155.2,184.4 L155.1,184.5 M155.1,184.5 L155.1,184.6 M155.1,184.6 L154.9,184.7 M154.9,184.7 L154.7,184.8 M154.7,184.8 L154.6,184.9 M154.6,184.9 L154.4,185.0 M154.4,185.0 L154.1,185.1 M154.1,185.1 L153.9,185.3 M153.9,185.3 L153.7,185.4 M153.7,185.4 L153.6,185.5 M153.6,185.5 L153.5,185.6 M153.5,185.6 L153.4,185.7 M153.4,185.7 L153.3,185.8 M153.3,185.8 L153.2,185.9 M153.2,185.9 L153.2,186.0 M153.2,186.0 L153.1,186.1 M153.1,186.1 L153.0,186.2 M153.0,186.2 L152.9,186.3 M152.9,186.3 L152.8,186.5 M152.8,186.5 L152.7,186.6 M152.7,186.6 L152.6,186.6 M152.6,186.6 L152.5,186.6 M152.5,186.6 L152.4,186.6 M152.4,186.6 L152.3,186.6 M152.3,186.6 L152.2,186.5 M152.2,186.5 L152.1,186.6 M152.1,186.6 L152.0,186.6 M152.0,186.6 L151.7,186.7 M151.7,186.7 L151.6,186.7 M151.6,186.7 L151.3,186.8 M151.3,186.8 L151.1,186.9 M151.1,186.9 L151.1,186.9 M151.1,186.9 L151.0,186.9 M151.0,186.9 L150.9,186.9 M150.9,186.9 L150.8,186.9 M150.8,186.9 L150.7,186.9 M150.7,186.9 L150.6,187.0 M150.6,187.0 L150.4,187.2 M101.1,101.3 L101.1,101.4 M101.1,101.4 L101.1,101.5 M101.1,101.5 L101.1,101.6 M101.1,101.6 L101.1,101.7 M101.1,101.7 L101.1,101.9 M101.1,101.9 L101.1,102.0 M101.1,102.0 L101.1,102.2 M101.1,102.2 L101.2,102.4 M101.2,102.4 L101.2,102.4 M101.2,102.4 L101.4,102.6 M101.4,102.6 L101.5,102.8 M101.5,102.8 L101.6,103.0 M101.6,103.0 L101.7,103.1 M101.7,103.1 L101.7,103.1 M101.7,103.1 L101.8,103.2 M101.8,103.2 L101.9,103.5 M101.9,103.5 L102.0,103.6 M102.0,103.6 L102.1,103.8 M102.1,103.8 L102.1,104.0 M102.1,104.0 L102.1,104.2 M102.1,104.2 L102.1,104.2 M102.1,104.2 L102.0,104.4 M102.0,104.4 L101.9,104.6 M101.9,104.6 L101.9,104.7 M101.9,104.7 L102.0,104.7 M102.0,104.7 L102.0,104.9 M102.0,104.9 L102.0,104.9 M102.0,104.9 L102.0,104.9 M102.0,104.9 L101.9,105.0 M101.9,105.0 L101.9,105.1 M101.9,105.1 L101.9,105.3 M101.9,105.3 L101.9,105.3 M101.9,105.3 L101.9,105.3 M101.9,105.3 L102.0,105.5 M102.0,105.5 L102.1,105.7 M102.1,105.7 L102.1,105.8 M102.1,105.8 L102.0,106.1 M102.0,106.1 L102.0,106.1 M102.0,106.1 L102.0,106.1 M102.0,106.1 L102.0,106.2 M102.0,106.2 L102.0,106.2 M102.0,106.2 L102.1,106.3 M102.1,106.3 L102.2,106.4 M102.2,106.4 L102.3,106.6 M102.3,106.6 L102.3,106.6 M102.3,106.6 L102.3,106.7 M102.3,106.7 L102.4,106.9 M102.4,106.9 L102.4,107.1 M102.4,107.1 L102.5,107.1 M102.5,107.1 L102.5,107.2 M102.5,107.2 L102.7,107.3 M102.7,107.3 L102.8,107.4 M102.8,107.4 L102.9,107.5 M102.9,107.5 L103.1,107.6 M103.1,107.6 L103.2,107.8 M103.2,107.8 L103.4,108.1 M103.4,108.1 L103.5,108.3 M103.5,108.3 L103.5,108.3 M103.5,108.3 L103.6,108.4 M103.6,108.4 L103.7,108.4 M103.7,108.4 L103.9,108.5 M103.9,108.5 L104.0,108.5 M104.0,108.5 L104.2,108.6 M104.2,108.6 L104.4,108.6 M104.4,108.6 L104.5,108.7 M104.5,108.7 L104.5,108.8 M104.5,108.8 L104.5,108.8 M104.5,108.8 L104.6,109.0 M104.6,109.0 L104.6,109.0 M104.6,109.0 L104.6,109.1 M104.6,109.1 L104.7,109.1 M104.7,109.1 L104.8,109.1 M104.8,109.1 L105.1,109.2 M105.1,109.2 L105.2,109.3 M105.2,109.3 L105.3,109.3 M105.3,109.3 L105.3,109.3 M105.3,109.3 L105.5,109.3 M105.5,109.3 L105.7,109.3 M105.7,109.3 L105.7,109.3 M105.7,109.3 L105.8,109.3 M105.8,109.3 L105.8,109.4 M105.8,109.4 L105.9,109.5 M105.9,109.5 L105.9,109.5 M105.9,109.5 L105.9,109.6 M105.9,109.6 L106.0,109.8 M106.0,109.8 L106.0,109.8 M106.0,109.8 L105.9,109.9 M105.9,109.9 L105.9,110.0 M105.9,110.0 L105.9,110.2 M105.9,110.2 L106.0,110.3 M106.0,110.3 L106.0,110.3 M106.0,110.3 L106.0,110.3 M106.0,110.3 L106.2,110.3 M106.2,110.3 L106.3,110.3 M106.3,110.3 L106.4,110.3 M106.4,110.3 L106.5,110.4 M106.5,110.4 L106.5,110.4 M106.5,110.4 L106.5,110.4 M106.5,110.4 L106.6,110.4 M106.6,110.4 L106.8,110.4 M106.8,110.4 L107.0,110.5 M107.0,110.5 L107.2,110.6 M107.2,110.6 L107.2,110.6 M107.2,110.6 L107.1,110.7 M107.1,110.7 L107.0,110.7 M107.0,110.7 L107.0,110.7 M107.0,110.7 L107.0,110.9 M107.0,110.9 L107.1,110.9 M107.1,110.9 L107.1,111.0 M107.1,111.0 L107.1,111.1 M107.1,111.1 L107.2,111.2 M107.2,111.2 L107.3,111.2 M107.3,111.2 L107.5,111.3 M107.5,111.3 L107.6,111.3 M107.6,111.3 L107.6,111.4 M107.6,111.4 L107.7,111.5 M107.7,111.5 L107.7,111.6 M107.7,111.6 L107.7,111.7 M107.7,111.7 L107.7,111.7 M107.7,111.7 L107.7,111.8 M107.7,111.8 L107.6,111.9 M107.6,111.9 L107.5,112.0 M107.5,112.0 L107.5,112.0 M107.5,112.0 L107.5,112.1 M107.5,112.1 L107.6,112.2 M107.6,112.2 L107.6,112.2 M107.6,112.2 L107.7,112.3 M107.7,112.3 L107.8,112.3 M107.8,112.3 L107.8,112.4 M107.8,112.4 L107.9,112.5 M107.9,112.5 L107.9,112.6 M107.9,112.6 L107.9,112.6 M107.9,112.6 L107.9,112.6 M107.9,112.6 L107.9,112.8 M107.9,112.8 L107.9,112.8 M107.9,112.8 L107.8,113.0 M107.8,113.0 L107.8,113.1 M107.8,113.1 L107.7,113.2 M107.7,113.2 L107.7,113.4 M107.7,113.4 L107.6,113.5 M107.6,113.5 L107.5,113.6 M107.5,113.6 L107.5,113.6 M107.5,113.6 L107.5,113.7 M107.5,113.7 L107.5,113.8 M107.5,113.8 L107.4,113.9 M107.4,113.9 L107.4,114.1 M107.4,114.1 L107.4,114.1 M107.4,114.1 L107.3,114.2 M107.3,114.2 L107.4,114.2 M107.4,114.2 L107.4,114.3 M107.4,114.3 L107.4,114.4 M107.4,114.4 L107.4,114.5 M107.4,114.5 L107.5,114.6 M107.5,114.6 L107.5,114.7 M107.5,114.7 L107.6,114.8 M107.6,114.8 L107.6,114.9 M107.6,114.9 L107.6,114.9 M107.6,114.9 L107.6,115.0 M107.6,115.0 L107.7,115.3 M107.7,115.3 L107.8,115.5 M107.8,115.5 L107.7,115.6 M107.7,115.6 L107.7,115.7 M107.7,115.7 L107.7,115.7 M107.7,115.7 L107.5,115.7 M107.5,115.7 L107.5,115.8 M107.5,115.8 L107.5,115.8 M107.5,115.8 L107.5,115.8 M107.5,115.8 L107.6,115.9 M107.6,115.9 L107.5,115.9 M107.5,115.9 L107.5,116.0 M107.5,116.0 L107.4,116.2 M107.4,116.2 L107.4,116.3 M107.4,116.3 L107.4,116.3 M107.4,116.3 L107.4,116.4 M107.4,116.4 L107.4,116.4 M107.4,116.4 L107.3,116.5 M107.3,116.5 L107.3,116.6 M107.3,116.6 L107.3,116.8 M107.3,116.8 L107.4,116.9 M107.4,116.9 L107.4,117.0 M107.4,117.0 L107.4,117.1 M107.4,117.1 L107.5,117.2 M107.5,117.2 L107.5,117.2 M107.5,117.2 L107.3,117.3 M107.3,117.3 L107.3,117.3 M107.3,117.3 L107.3,117.3 M107.3,117.3 L107.1,117.4 M107.1,117.4 L107.0,117.5 M107.0,117.5 L106.9,117.6 M106.9,117.6 L106.9,117.7 M106.9,117.7 L106.9,117.8 M106.9,117.8 L106.9,117.8 M106.9,117.8 L106.9,117.9 M106.9,117.9 L106.8,117.9 M106.8,117.9 L106.6,118.1 M106.6,118.1 L106.4,118.3 M106.4,118.3 L106.4,118.3 M106.4,118.3 L106.3,118.4 M106.3,118.4 L106.3,118.5 M106.3,118.5 L106.2,118.5 M106.2,118.5 L106.1,118.6 M106.1,118.6 L106.1,118.7 M106.1,118.7 L106.1,118.8 M106.1,118.8 L106.0,118.9 M106.0,118.9 L106.0,119.1 M106.0,119.1 L106.0,119.1 M106.0,119.1 L106.0,119.2 M106.0,119.2 L106.0,119.3 M106.0,119.3 L106.0,119.3 M106.0,119.3 L106.0,119.5 M106.0,119.5 L106.0,119.6 M106.0,119.6 L106.0,119.7 M106.0,119.7 L105.9,119.8 M105.9,119.8 L105.8,119.8 M105.8,119.8 L105.7,119.9 M105.7,119.9 L105.6,119.9 M105.6,119.9 L105.6,119.9 M105.6,119.9 L105.5,119.9 M105.5,119.9 L105.4,120.0 M105.4,120.0 L105.3,120.0 M105.3,120.0 L105.2,120.1 M105.2,120.1 L105.2,120.2 M105.2,120.2 L105.1,120.3 M105.1,120.3 L105.1,120.4 M105.1,120.4 L104.9,120.4 M104.9,120.4 L104.8,120.5 M104.8,120.5 L104.7,120.5 M104.7,120.5 L104.6,120.5 M104.6,120.5 L104.5,120.5 M79.5,81.2 L79.4,81.2 M79.4,81.2 L79.4,81.2 M79.4,81.2 L79.3,81.2 M79.3,81.2 L79.3,81.2 M79.3,81.2 L79.2,81.2 M79.2,81.2 L79.2,81.2 M79.2,81.2 L79.1,81.2 M79.1,81.2 L79.1,81.2 M79.1,81.2 L79.1,81.2 M79.1,81.2 L79.1,81.3 M79.1,81.3 L79.0,81.3 M79.0,81.3 L78.9,81.4 M78.9,81.4 L78.8,81.5 M78.8,81.5 L78.8,81.6 M78.8,81.6 L78.7,81.6 M78.7,81.6 L78.6,81.6 M78.6,81.6 L78.5,81.6 M78.5,81.6 L78.4,81.6 M78.4,81.6 L78.3,81.6 M78.3,81.6 L78.3,81.6 M78.3,81.6 L78.3,81.7 M78.3,81.7 L78.2,81.7 M78.2,81.7 L78.2,81.7 M78.2,81.7 L78.1,81.8 M78.1,81.8 L78.1,81.8 M78.1,81.8 L78.0,81.8 M78.0,81.8 L78.0,81.8 M78.0,81.8 L78.0,81.8 M78.0,81.8 L78.0,81.9 M78.0,81.9 L77.9,81.9 M77.9,81.9 L77.9,81.9 M77.9,81.9 L77.9,82.0 M77.9,82.0 L77.8,82.1 M77.8,82.1 L77.7,82.1 M77.7,82.1 L77.7,82.1 M77.7,82.1 L77.6,82.2 M77.6,82.2 L77.5,82.2 M77.5,82.2 L77.5,82.2 M77.5,82.2 L77.5,82.2 M77.5,82.2 L77.5,82.2 M77.5,82.2 L77.4,82.2 M77.4,82.2 L77.4,82.3 M77.4,82.3 L77.3,82.5 M77.3,82.5 L77.3,82.6 M77.3,82.6 L77.3,82.6 M77.3,82.6 L77.3,82.7 M77.3,82.7 L77.1,82.8 M77.1,82.8 L77.1,82.9 M77.1,82.9 L77.1,82.9 M77.1,82.9 L76.9,83.0 M76.9,83.0 L76.7,83.0 M76.7,83.0 L76.7,83.0 M76.7,83.0 L76.6,83.0 M76.6,83.0 L76.5,83.0 M76.5,83.0 L76.4,83.0 M76.4,83.0 L76.3,83.0 M76.3,83.0 L76.2,83.2 M76.2,83.2 L76.2,83.2 M76.2,83.2 L76.2,83.2 M76.2,83.2 L76.2,83.3 M76.2,83.3 L76.2,83.3 M76.2,83.3 L76.1,83.3 M76.1,83.3 L76.1,83.3 M76.1,83.3 L76.0,83.4 M76.0,83.4 L75.9,83.4 M75.9,83.4 L75.9,83.4 M75.9,83.4 L75.8,83.5 M75.8,83.5 L75.8,83.6 M75.8,83.6 L75.7,83.6 M75.7,83.6 L75.7,83.6 M75.7,83.6 L75.7,83.7 M75.7,83.7 L75.8,83.8 M75.8,83.8 L75.9,83.9 M75.9,83.9 L75.9,83.9 M75.9,83.9 L75.9,83.9 M75.9,83.9 L76.0,83.9 M76.0,83.9 L76.0,83.9 M76.0,83.9 L76.1,84.0 M76.1,84.0 L76.1,84.0 M76.1,84.0 L76.1,84.1 M76.1,84.1 L76.1,84.1 M76.1,84.1 L76.1,84.2 M76.1,84.2 L76.1,84.3 M76.1,84.3 L76.1,84.4 M76.1,84.4 L76.0,84.5 M76.0,84.5 L76.0,84.5 M76.0,84.5 L75.9,84.6 M75.9,84.6 L75.9,84.7 M75.9,84.7 L75.9,84.7 M75.9,84.7 L75.9,84.8 M75.9,84.8 L75.9,84.9 M75.9,84.9 L75.9,85.0 M75.9,85.0 L76.0,85.1 M76.0,85.1 L76.0,85.2 M76.0,85.2 L76.0,85.4 M76.0,85.4 L76.1,85.5 M76.1,85.5 L76.1,85.6 M76.1,85.6 L76.2,85.6 M76.2,85.6 L76.2,85.7 M76.2,85.7 L76.2,85.9 M76.2,85.9 L76.3,86.0 M76.3,86.0 L76.5,86.2 M76.5,86.2 L76.6,86.3 M76.6,86.3 L76.6,86.3 M76.6,86.3 L76.7,86.4 M76.7,86.4 L76.8,86.5 M76.8,86.5 L76.8,86.6 M76.8,86.6 L76.9,86.7 M76.9,86.7 L76.9,86.7 M76.9,86.7 L76.9,86.8 M76.9,86.8 L76.9,86.9 M76.9,86.9 L77.0,87.0 M77.0,87.0 L77.0,87.0 M77.0,87.0 L77.1,87.1 M77.1,87.1 L77.2,87.3 M77.2,87.3 L77.2,87.3 M77.2,87.3 L77.3,87.4 M77.3,87.4 L77.4,87.4 M77.4,87.4 L77.4,87.4 M77.4,87.4 L77.5,87.5 M77.5,87.5 L77.5,87.5 M77.5,87.5 L77.6,87.6 M77.6,87.6 L77.6,87.6 M77.6,87.6 L77.6,87.7 M77.6,87.7 L77.6,87.7 M77.6,87.7 L77.6,87.9 M77.6,87.9 L77.6,88.0 M77.6,88.0 L77.5,88.1 M77.5,88.1 L77.5,88.2 M77.5,88.2 L77.5,88.3 M77.5,88.3 L77.5,88.5 M77.5,88.5 L77.6,88.7 M77.6,88.7 L77.6,88.8 M77.6,88.8 L77.7,88.8 M77.7,88.8 L77.7,88.9 M77.7,88.9 L77.8,89.0 M77.8,89.0 L78.0,89.2 M78.0,89.2 L78.1,89.3 M78.1,89.3 L78.1,89.3 M78.1,89.3 L78.2,89.2 M78.2,89.2 L78.2,89.2 M78.2,89.2 L78.2,89.2 M78.2,89.2 L78.3,89.2 M78.3,89.2 L78.3,89.2 M78.3,89.2 L78.4,89.2 M78.4,89.2 L78.4,89.2 M78.4,89.2 L78.5,89.2 M78.5,89.2 L78.5,89.2 M78.5,89.2 L78.5,89.2 M78.5,89.2 L78.6,89.2 M78.6,89.2 L78.7,89.2 M78.7,89.2 L78.7,89.2 M78.7,89.2 L78.8,89.3 M78.8,89.3 L78.8,89.3 M78.8,89.3 L78.9,89.3 M78.9,89.3 L79.0,89.3 M79.0,89.3 L79.0,89.3 M79.0,89.3 L79.1,89.2 M79.1,89.2 L79.1,89.2 M79.1,89.2 L79.2,89.1 M79.2,89.1 L79.2,89.1 M79.2,89.1 L79.3,89.0 M79.3,89.0 L79.3,89.0 M79.3,89.0 L79.4,89.1 M79.4,89.1 L79.5,89.1 M79.5,89.1 L79.6,89.1 M79.6,89.1 L79.6,89.1 M79.6,89.1 L79.7,89.1 M79.7,89.1 L79.8,89.1 M79.8,89.1 L79.9,89.2 M79.9,89.2 L80.0,89.2 M80.0,89.2 L80.0,89.3 M80.0,89.3 L80.1,89.4 M80.1,89.4 L80.1,89.4 M80.1,89.4 L80.2,89.4 M80.2,89.4 L80.2,89.5 M80.2,89.5 L80.3,89.5 M80.3,89.5 L80.3,89.5 M80.3,89.5 L80.3,89.6 M80.3,89.6 L80.3,89.6 M80.3,89.6 L80.3,89.7 M80.3,89.7 L80.3,89.7 M80.3,89.7 L80.3,89.8 M80.3,89.8 L80.3,89.8 M80.3,89.8 L80.3,89.8 M80.3,89.8 L80.3,89.8 M80.3,89.8 L80.4,89.9 M80.4,89.9 L80.4,89.9 M80.4,89.9 L80.4,89.9 M80.4,89.9 L80.3,90.0 M80.3,90.0 L80.3,90.1 M80.3,90.1 L80.3,90.1 M80.3,90.1 L80.3,90.2 M80.3,90.2 L80.2,90.2 M80.2,90.2 L80.2,90.2 M80.2,90.2 L80.2,90.3 M80.2,90.3 L80.2,90.3 M80.2,90.3 L80.2,90.4 M80.2,90.4 L80.3,90.5 M80.3,90.5 L80.3,90.6 M80.3,90.6 L80.4,90.6 M80.4,90.6 L80.5,90.8 M80.5,90.8 L80.6,90.9 M80.6,90.9 L80.6,90.9 M80.6,90.9 L80.7,90.9 M80.7,90.9 L80.7,90.9 M80.7,90.9 L80.8,90.8 M80.8,90.8 L80.9,90.8 M80.9,90.8 L81.0,90.8 M81.0,90.8 L81.1,90.8 M81.1,90.8 L81.1,90.8 M81.1,90.8 L81.3,90.7 M81.3,90.7 L81.4,90.7 M81.4,90.7 L81.5,90.7 M81.5,90.7 L81.6,90.8 M81.6,90.8 L81.7,90.9 M81.7,90.9 L81.8,91.0 M81.8,91.0 L81.9,91.1 M81.9,91.1 L81.9,91.2 M81.9,91.2 L82.0,91.2 M82.0,91.2 L82.2,91.3 M82.2,91.3 L82.3,91.4 M82.3,91.4 L82.3,91.4 M82.3,91.4 L82.3,91.4 M82.3,91.4 L82.4,91.5 M82.4,91.5 L82.6,91.6 M82.6,91.6 L82.6,91.7 M82.6,91.7 L82.6,91.8 M82.6,91.8 L82.6,92.1 M82.6,92.1 L82.6,92.1 M82.6,92.1 L82.6,92.3 M82.6,92.3 L82.6,92.5 M82.6,92.5 L82.8,92.6 M82.8,92.6 L82.8,92.7 M82.8,92.7 L82.9,92.9 M82.9,92.9 L82.9,92.9 M82.9,92.9 L82.8,93.1 M82.8,93.1 L82.8,93.2 M82.8,93.2 L82.9,93.5 M82.9,93.5 L82.9,93.5 M82.9,93.5 L82.9,93.5 M82.9,93.5 L82.9,93.5 M82.9,93.5 L82.9,93.6 M82.9,93.6 L82.9,93.6 M82.9,93.6 L83.0,93.7 M83.0,93.7 L83.0,93.8 M83.0,93.8 L83.1,93.9 M83.1,93.9 L83.1,94.0 M83.1,94.0 L83.1,94.2 M83.1,94.2 L83.1,94.4 M83.1,94.4 L83.1,94.5 M83.1,94.5 L83.2,94.6 M83.2,94.6 L83.2,94.7 M83.2,94.7 L83.3,94.7 M83.3,94.7 L83.3,94.8 M83.3,94.8 L83.2,94.8 M83.2,94.8 L83.2,94.9 M83.2,94.9 L83.2,95.0 M83.2,95.0 L83.2,95.0 M83.2,95.0 L83.2,95.2 M83.2,95.2 L83.1,95.4 M83.1,95.4 L83.1,95.5 M83.1,95.5 L83.0,95.6 M83.0,95.6 L83.0,95.6 M83.0,95.6 L83.0,95.7 M83.0,95.7 L83.0,95.8 M83.0,95.8 L83.1,95.9 M83.1,95.9 L83.1,96.0 M83.1,96.0 L83.1,96.1 M83.1,96.1 L83.1,96.2 M83.1,96.2 L83.2,96.2 M83.2,96.2 L83.2,96.3 M83.2,96.3 L83.2,96.3 M83.2,96.3 L83.2,96.4 M83.2,96.4 L83.2,96.5 M83.2,96.5 L83.2,96.5 M83.2,96.5 L83.2,96.6 M83.2,96.6 L83.3,96.7 M83.3,96.7 L83.3,96.8 M83.3,96.8 L83.4,96.9 M83.4,96.9 L83.4,97.0 M83.4,97.0 L83.5,97.1 M83.5,97.1 L83.5,97.2 M83.5,97.2 L83.5,97.4 M83.5,97.4 L83.5,97.4 M83.5,97.4 L83.5,97.4 M83.5,97.4 L83.6,97.5 M83.6,97.5 L83.6,97.5 M83.6,97.5 L83.6,97.6 M83.6,97.6 L83.7,97.6 M83.7,97.6 L83.7,97.7 M83.7,97.7 L83.8,97.7 M83.8,97.7 L83.9,97.8 M83.9,97.8 L83.9,97.9 M83.9,97.9 L84.0,98.0 M84.0,98.0 L84.0,98.1 M84.0,98.1 L84.0,98.2 M84.0,98.2 L84.0,98.2 M84.0,98.2 L84.0,98.2 M84.0,98.2 L84.1,98.3 M84.1,98.3 L84.1,98.4 M84.1,98.4 L84.1,98.5 M84.1,98.5 L84.1,98.5 M84.1,98.5 L84.2,98.7 M84.2,98.7 L84.2,98.7 M84.2,98.7 L84.2,98.9 M84.2,98.9 L84.2,98.9 M84.2,98.9 L84.1,99.0 M84.1,99.0 L84.0,99.1 M84.0,99.1 L83.9,99.1 M83.9,99.1 L83.9,99.1 M83.9,99.1 L83.9,99.1 M83.9,99.1 L83.8,99.2 M83.8,99.2 L83.7,99.3 M83.7,99.3 L83.6,99.4 M83.6,99.4 L83.5,99.6 M83.5,99.6 L83.4,99.8 M83.4,99.8 L83.4,99.8 M83.4,99.8 L83.4,99.9 M83.4,99.9 L83.3,100.1 M83.3,100.1 L83.3,100.1 M83.3,100.1 L83.2,100.3 M83.2,100.3 L83.2,100.3 M83.2,100.3 L83.1,100.4 M83.1,100.4 L83.1,100.5 M83.1,100.5 L83.0,100.7 M83.0,100.7 L82.8,100.9 M82.8,100.9 L82.8,100.9 M82.8,100.9 L82.7,101.1 M82.7,101.1 L82.7,101.2 M82.7,101.2 L82.7,101.2 M82.7,101.2 L82.7,101.2 M82.7,101.2 L82.8,101.4 M82.8,101.4 L82.9,101.5 M82.9,101.5 L82.9,101.5 M82.9,101.5 L83.0,101.6 M83.0,101.6 L83.1,101.7 M83.1,101.7 L83.2,101.8 M83.2,101.8 L83.2,101.8 M83.2,101.8 L83.2,101.9 M83.2,101.9 L83.1,101.9 M83.1,101.9 L83.0,102.0 M83.0,102.0 L82.7,102.2 M82.7,102.2 L82.4,102.3 M82.4,102.3 L82.3,102.4 M82.3,102.4 L82.2,102.4 M82.2,102.4 L82.2,102.5 M82.2,102.5 L82.1,102.5 M85.8,84.0 L85.8,84.0 M85.8,84.0 L85.7,84.1 M85.7,84.1 L85.6,84.1 M85.6,84.1 L85.6,84.1 M85.6,84.1 L85.5,84.2 M85.5,84.2 L85.4,84.2 M85.4,84.2 L85.4,84.2 M85.4,84.2 L85.3,84.2 M85.3,84.2 L85.3,84.2 M85.3,84.2 L85.2,84.2 M85.2,84.2 L85.2,84.2 M85.2,84.2 L85.1,84.2 M85.1,84.2 L85.1,84.2 M85.1,84.2 L85.1,84.2 M85.1,84.2 L85.0,84.1 M85.0,84.1 L84.8,84.1 M84.8,84.1 L84.8,84.0 M84.8,84.0 L84.5,83.9 M84.5,83.9 L84.5,83.9 M84.5,83.9 L84.4,83.8 M84.4,83.8 L84.4,83.8 M84.4,83.8 L84.3,83.7 M84.3,83.7 L84.3,83.6 M84.3,83.6 L84.2,83.5 M84.2,83.5 L84.2,83.5 M84.2,83.5 L84.2,83.5 M84.2,83.5 L84.0,83.5 M84.0,83.5 L83.9,83.5 M83.9,83.5 L83.8,83.5 M83.8,83.5 L83.7,83.6 M83.7,83.6 L83.5,83.8 M83.5,83.8 L83.4,83.9 M83.4,83.9 L83.4,83.9 M83.4,83.9 L83.2,84.0 M83.2,84.0 L83.1,84.1 M83.1,84.1 L83.1,84.1 M83.1,84.1 L83.0,84.1 M83.0,84.1 L83.0,84.1 M83.0,84.1 L82.9,84.1 M82.9,84.1 L82.8,84.0 M82.8,84.0 L82.7,83.9 M82.7,83.9 L82.4,83.7 M82.4,83.7 L82.3,83.6 M82.3,83.6 L82.1,83.6 M82.1,83.6 L82.1,83.5 M82.1,83.5 L82.1,83.5 M82.1,83.5 L82.1,83.5 M82.1,83.5 L82.0,83.3 M82.0,83.3 L82.0,83.3 M82.0,83.3 L81.9,83.1 M81.9,83.1 L81.9,83.0 M81.9,83.0 L81.9,82.9 M81.9,82.9 L81.9,82.9 M81.9,82.9 L81.9,82.7 M81.9,82.7 L81.9,82.6 M81.9,82.6 L81.9,82.5 M81.9,82.5 L81.8,82.5 M81.8,82.5 L81.8,82.4 M81.8,82.4 L81.8,82.3 M81.8,82.3 L81.7,82.1 M81.7,82.1 L81.7,82.0 M81.7,82.0 L81.6,81.9 M81.6,81.9 L81.5,81.8 M81.5,81.8 L81.5,81.8 M81.5,81.8 L81.4,81.8 M81.4,81.8 L81.3,81.8 M81.3,81.8 L81.2,81.8 M81.2,81.8 L81.2,81.9 M81.2,81.9 L81.1,81.9 M81.1,81.9 L81.1,81.9 M81.1,81.9 L81.1,81.9 M81.1,81.9 L81.0,82.0 M81.0,82.0 L81.0,82.0 M81.0,82.0 L80.9,82.0 M80.9,82.0 L80.9,82.0 M80.9,82.0 L80.9,82.1 M80.9,82.1 L80.8,82.2 M80.8,82.2 L80.8,82.2 M80.8,82.2 L80.7,82.2 M80.7,82.2 L80.7,82.2 M80.7,82.2 L80.8,82.1 M80.8,82.1 L80.7,82.1 M80.7,82.1 L80.7,82.0 M80.7,82.0 L80.6,82.0 M80.6,82.0 L80.6,81.9 M80.6,81.9 L80.6,81.9 M80.6,81.9 L80.6,81.8 M80.6,81.8 L80.6,81.8 M80.6,81.8 L80.5,81.8 M80.5,81.8 L80.3,81.7 M80.3,81.7 L80.2,81.7 M80.2,81.7 L80.2,81.7 M80.2,81.7 L80.1,81.7 M80.1,81.7 L80.0,81.7 M80.0,81.7 L80.0,81.7 M80.0,81.7 L80.0,81.7 M80.0,81.7 L79.9,81.6 M79.9,81.6 L79.9,81.5 M79.9,81.5 L79.8,81.4 M79.8,81.4 L79.7,81.4 M79.7,81.4 L79.7,81.3 M79.7,81.3 L79.7,81.3 M79.7,81.3 L79.6,81.3 M79.6,81.3 L79.6,81.2 M79.6,81.2 L79.5,81.2 M79.5,81.2 L79.5,81.2 M79.5,81.2 L79.5,81.2 M65.9,66.1 L65.8,66.0 M65.8,66.0 L65.7,66.0 M65.7,66.0 L65.4,65.9 M65.4,65.9 L65.3,65.9 M65.3,65.9 L65.2,65.9 M65.2,65.9 L65.0,65.9 M65.0,65.9 L64.9,65.9 M64.9,65.9 L64.7,65.9 M64.7,65.9 L64.7,65.9 M64.7,65.9 L64.7,66.0 M64.7,66.0 L64.4,66.0 M64.4,66.0 L64.1,66.0 M64.1,66.0 L64.0,66.0 M64.0,66.0 L63.9,66.1 M63.9,66.1 L63.7,66.2 M63.7,66.2 L63.5,66.2 M63.5,66.2 L63.3,66.2 M63.3,66.2 L63.1,66.2 M63.1,66.2 L63.0,66.2 M63.0,66.2 L62.9,66.3 M62.9,66.3 L62.8,66.4 M62.8,66.4 L62.8,66.4 M62.8,66.4 L62.7,66.5 M62.7,66.5 L62.6,66.6 M62.6,66.6 L62.6,66.7 M62.6,66.7 L62.6,66.7 M62.6,66.7 L62.5,66.6 M62.5,66.6 L62.4,66.6 M62.4,66.6 L62.3,66.6 M62.3,66.6 L62.3,66.6 M62.3,66.6 L62.2,66.6 M62.2,66.6 L62.1,66.6 M62.1,66.6 L62.0,66.6 M62.0,66.6 L61.9,66.7 M61.9,66.7 L61.9,66.7 M61.9,66.7 L61.8,66.7 M61.8,66.7 L61.7,66.6 M61.7,66.6 L61.5,66.6 M61.5,66.6 L61.4,66.6 M61.4,66.6 L61.3,66.6 M61.3,66.6 L61.2,66.6 M61.2,66.6 L61.1,66.7 M61.1,66.7 L61.0,66.8 M61.0,66.8 L60.9,67.0 M60.9,67.0 L60.9,67.0 M60.9,67.0 L60.6,67.1 M60.6,67.1 L60.5,67.2 M60.5,67.2 L60.4,67.3 M60.4,67.3 L60.4,67.4 M60.4,67.4 L60.3,67.5 M60.3,67.5 L60.3,67.6 M60.3,67.6 L60.2,67.6 M60.2,67.6 L60.1,67.7 M60.1,67.7 L60.1,67.7 M60.1,67.7 L60.0,67.6 M60.0,67.6 L59.8,67.6 M59.8,67.6 L59.7,67.6 M59.7,67.6 L59.5,67.6 M59.5,67.6 L59.5,67.6 M59.5,67.6 L59.5,67.7 M59.5,67.7 L59.2,67.8 M59.2,67.8 L59.1,67.8 M59.1,67.8 L59.0,68.0 M59.0,68.0 L58.9,68.1 M58.9,68.1 L58.9,68.1 M58.9,68.1 L58.7,68.4 M58.7,68.4 L58.5,68.6 M58.5,68.6 L58.5,68.6 M58.5,68.6 L58.3,68.7 M58.3,68.7 L58.2,68.8 M58.2,68.8 L58.2,68.8 M58.2,68.8 L58.1,68.9 M58.1,68.9 L58.1,69.1 M58.1,69.1 L58.1,69.2 M58.1,69.2 L58.1,69.2 M58.1,69.2 L58.1,69.3 M58.1,69.3 L58.3,69.5 M58.3,69.5 L58.3,69.5 M58.3,69.5 L58.4,69.6 M58.4,69.6 L58.4,69.6 M58.4,69.6 L58.4,69.7 M58.4,69.7 L58.4,69.9 M58.4,69.9 L58.3,70.1 M58.3,70.1 L58.3,70.3 M58.3,70.3 L58.3,70.3 M58.3,70.3 L58.3,70.4 M58.3,70.4 L58.4,70.5 M58.4,70.5 L58.5,70.5 M58.5,70.5 L58.6,70.6 M58.6,70.6 L58.7,70.7 M58.7,70.7 L58.7,70.7 M58.7,70.7 L58.8,70.4 M58.8,70.4 L58.9,70.3 M58.9,70.3 L59.2,70.2 M59.2,70.2 L59.5,70.1 M59.5,70.1 L59.9,70.1 M59.9,70.1 L60.0,70.1 M60.0,70.1 L60.2,70.1 M60.2,70.1 L60.3,70.1 M60.3,70.1 L60.5,70.2 M60.5,70.2 L60.7,70.2 M60.7,70.2 L60.8,70.2 M60.8,70.2 L60.8,70.1 M60.8,70.1 L60.9,70.1 M60.9,70.1 L61.0,70.1 M61.0,70.1 L61.0,70.1 M61.0,70.1 L61.0,70.1 M61.0,70.1 L61.1,70.2 M61.1,70.2 L61.4,70.4 M61.4,70.4 L61.5,70.5 M61.5,70.5 L61.8,70.6 M61.8,70.6 L61.8,70.7 M61.8,70.7 L61.9,70.7 M61.9,70.7 L61.9,70.8 M61.9,70.8 L62.0,70.8 M62.0,70.8 L62.0,70.9 M62.0,70.9 L61.9,71.0 M61.9,71.0 L61.9,71.0 M61.9,71.0 L61.9,71.1 M61.9,71.1 L62.0,71.2 M62.0,71.2 L62.0,71.3 M62.0,71.3 L62.1,71.4 M62.1,71.4 L62.2,71.5 M62.2,71.5 L62.2,71.5 M62.2,71.5 L62.3,71.7 M62.3,71.7 L62.4,71.8 M62.4,71.8 L62.5,71.9 M62.5,71.9 L62.5,71.9 M62.5,71.9 L62.6,72.0 M62.6,72.0 L62.7,72.1 M62.7,72.1 L62.7,72.1 M62.7,72.1 L62.8,72.1 M62.8,72.1 L62.9,72.1 M62.9,72.1 L63.0,72.1 M63.0,72.1 L63.0,72.1 M63.0,72.1 L63.1,72.1 M63.1,72.1 L63.2,72.2 M63.2,72.2 L63.4,72.3 M63.4,72.3 L63.5,72.3 M63.5,72.3 L63.6,72.4 M63.6,72.4 L63.7,72.4 M63.7,72.4 L63.8,72.4 M63.8,72.4 L63.8,72.4 M63.8,72.4 L63.9,72.4 M63.9,72.4 L63.9,72.5 M63.9,72.5 L63.9,72.6 M63.9,72.6 L64.0,72.6 M64.0,72.6 L64.0,72.7 M64.0,72.7 L64.1,72.7 M64.1,72.7 L64.2,72.8 M64.2,72.8 L64.2,72.9 M64.2,72.9 L64.3,73.0 M64.3,73.0 L64.3,73.1 M64.3,73.1 L64.3,73.1 M64.3,73.1 L64.3,73.2 M64.3,73.2 L64.3,73.2 M64.3,73.2 L64.4,73.2 M64.4,73.2 L64.4,73.3 M64.4,73.3 L64.5,73.4 M64.5,73.4 L64.5,73.5 M64.5,73.5 L64.5,73.6 M64.5,73.6 L64.6,73.7 M64.6,73.7 L64.6,73.7 M64.6,73.7 L64.7,73.8 M64.7,73.8 L64.8,73.9 M64.8,73.9 L64.8,73.9 M64.8,73.9 L64.8,73.9 M64.8,73.9 L64.9,74.0 M64.9,74.0 L64.9,74.1 M64.9,74.1 L64.9,74.1 M64.9,74.1 L64.8,74.2 M64.8,74.2 L64.8,74.2 M64.8,74.2 L64.8,74.3 M64.8,74.3 L64.8,74.3 M64.8,74.3 L64.8,74.3 M64.8,74.3 L64.8,74.4 M64.8,74.4 L64.8,74.5 M64.8,74.5 L64.9,74.5 M64.9,74.5 L64.9,74.6 M64.9,74.6 L64.9,74.6 M64.9,74.6 L65.0,74.7 M65.0,74.7 L65.0,74.8 M65.0,74.8 L65.1,75.0 M65.1,75.0 L65.0,75.1 M65.0,75.1 L65.0,75.2 M65.0,75.2 L65.0,75.3 M65.0,75.3 L65.1,75.4 M65.1,75.4 L65.1,75.5 M65.1,75.5 L65.2,75.5 M65.2,75.5 L65.3,75.5 M65.3,75.5 L65.5,75.5 M65.5,75.5 L65.5,75.5 M65.5,75.5 L65.6,75.5 M65.6,75.5 L65.8,75.5 M65.8,75.5 L66.0,75.5 M66.0,75.5 L66.1,75.6 M66.1,75.6 L66.1,75.6 M66.1,75.6 L66.1,75.6 M66.1,75.6 L66.3,75.6 M66.3,75.6 L66.4,75.5 M66.4,75.5 L66.5,75.5 M66.5,75.5 L66.6,75.6 M66.6,75.6 L66.6,75.6 M66.6,75.6 L66.6,75.7 M66.6,75.7 L66.7,75.7 M66.7,75.7 L66.8,75.7 M66.8,75.7 L66.9,75.7 M66.9,75.7 L67.0,75.7 M67.0,75.7 L67.2,75.7 M67.2,75.7 L67.3,75.7 M67.3,75.7 L67.4,75.8 M67.4,75.8 L67.5,75.9 M67.5,75.9 L67.5,75.9 M67.5,75.9 L67.7,76.0 M67.7,76.0 L67.7,76.1 M67.7,76.1 L67.8,76.3 M67.8,76.3 L67.8,76.3 M67.8,76.3 L67.9,76.4 M67.9,76.4 L67.9,76.4 M67.9,76.4 L68.0,76.5 M68.0,76.5 L68.1,76.5 M68.1,76.5 L68.2,76.6 M68.2,76.6 L68.2,76.6 M68.2,76.6 L68.3,76.7 M68.3,76.7 L68.3,76.8 M68.3,76.8 L68.3,76.9 M68.3,76.9 L68.3,76.9 M68.3,76.9 L68.3,77.0 M68.3,77.0 L68.4,77.2 M68.4,77.2 L68.4,77.2 M68.4,77.2 L68.5,77.4 M68.5,77.4 L68.5,77.6 M68.5,77.6 L68.5,77.7 M68.5,77.7 L68.6,77.8 M68.6,77.8 L68.6,77.8 M68.6,77.8 L68.6,77.8 M68.6,77.8 L68.7,77.9 M68.7,77.9 L68.7,77.9 M68.7,77.9 L68.8,77.9 M68.8,77.9 L69.0,78.0 M69.0,78.0 L69.1,78.0 M69.1,78.0 L69.1,78.1 M69.1,78.1 L69.2,78.3 M69.2,78.3 L69.2,78.4 M69.2,78.4 L69.2,78.6 M69.2,78.6 L69.3,78.9 M69.3,78.9 L69.6,79.1 M69.6,79.1 L69.6,79.2 M69.6,79.2 L69.7,79.3 M69.7,79.3 L69.7,79.3 M69.7,79.3 L69.8,79.4 M69.8,79.4 L69.8,79.4 M69.8,79.4 L69.9,79.4 M69.9,79.4 L70.0,79.5 M70.0,79.5 L70.2,79.5 M70.2,79.5 L70.3,79.5 M70.3,79.5 L70.3,79.5 M70.3,79.5 L70.3,79.6 M70.3,79.6 L70.4,79.8 M70.4,79.8 L70.5,80.0 M70.5,80.0 L70.5,80.1 M70.5,80.1 L70.6,80.2 M70.6,80.2 L70.6,80.3 M70.6,80.3 L70.7,80.3 M70.7,80.3 L70.9,80.4 M70.9,80.4 L71.0,80.4 M71.0,80.4 L71.0,80.4 M71.0,80.4 L71.1,80.5 M71.1,80.5 L71.1,80.5 M71.1,80.5 L71.1,80.7 M71.1,80.7 L71.1,80.7 M71.1,80.7 L71.1,80.8 M71.1,80.8 L71.1,80.9 M71.1,80.9 L71.0,81.0 M71.0,81.0 L71.0,81.0 M71.0,81.0 L71.0,81.1 M71.0,81.1 L71.0,81.1 M71.0,81.1 L71.0,81.2 M71.0,81.2 L71.0,81.4 M71.0,81.4 L71.0,81.5 M71.0,81.5 L70.9,81.6 M70.9,81.6 L70.9,81.6 M70.9,81.6 L70.9,81.7 M70.9,81.7 L70.9,81.7 M70.9,81.7 L70.9,81.8 M70.9,81.8 L71.0,81.8 M71.0,81.8 L71.1,81.9 M71.1,81.9 L71.1,81.8 M71.1,81.8 L71.2,81.8 M71.2,81.8 L71.2,81.8 M71.2,81.8 L71.3,81.8 M71.3,81.8 L71.4,81.8 M71.4,81.8 L71.4,81.8 M71.4,81.8 L71.5,81.8 M71.5,81.8 L71.6,81.8 M71.6,81.8 L71.7,81.8 M71.7,81.8 L71.7,81.8 M71.7,81.8 L71.7,81.8 M71.7,81.8 L71.8,81.8 M71.8,81.8 L71.8,81.8 M71.8,81.8 L71.8,81.8 M71.8,81.8 L71.8,81.7 M71.8,81.7 L71.9,81.7 M71.9,81.7 L71.9,81.7 M71.9,81.7 L71.9,81.7 M71.9,81.7 L72.0,81.7 M72.0,81.7 L72.0,81.7 M72.0,81.7 L72.0,81.8 M72.0,81.8 L72.0,81.8 M72.0,81.8 L72.0,81.8 M72.0,81.8 L72.1,81.8 M72.1,81.8 L72.1,81.8 M72.1,81.8 L72.2,81.8 M72.2,81.8 L72.3,81.8 M72.3,81.8 L72.3,81.9 M72.3,81.9 L72.3,82.0 M72.3,82.0 L72.3,82.1 M72.3,82.1 L72.3,82.1 M72.3,82.1 L72.4,82.1 M72.4,82.1 L72.4,82.2 M72.4,82.2 L72.4,82.3 M72.4,82.3 L72.5,82.3 M72.5,82.3 L72.5,82.3 M72.5,82.3 L72.6,82.5 M72.6,82.5 L72.7,82.7 M72.7,82.7 L72.8,82.7 M72.8,82.7 L72.9,82.8 M72.9,82.8 L73.0,82.8 M73.0,82.8 L73.0,82.8 M73.0,82.8 L73.2,82.8 M73.2,82.8 L73.4,82.9 M73.4,82.9 L73.5,82.9 M73.5,82.9 L73.5,83.0 M73.5,83.0 L73.6,83.0 M73.6,83.0 L73.6,83.0 M73.6,83.0 L73.7,83.0 M73.7,83.0 L73.8,83.0 M73.8,83.0 L73.8,82.9 M73.8,82.9 L73.9,82.9 M73.9,82.9 L73.9,82.9 M73.9,82.9 L74.0,82.9 M74.0,82.9 L74.0,82.9 M74.0,82.9 L74.1,82.9 M74.1,82.9 L74.1,82.8 M74.1,82.8 L74.2,82.9 M74.2,82.9 L74.2,82.9 M74.2,82.9 L74.2,82.9 M74.2,82.9 L74.2,82.9 M74.2,82.9 L74.2,82.9 M74.2,82.9 L74.3,82.9 M74.3,82.9 L74.4,82.9 M74.4,82.9 L74.4,83.0 M74.4,83.0 L74.4,83.0 M74.4,83.0 L74.4,83.0 M74.4,83.0 L74.4,83.0 M74.4,83.0 L74.5,83.1 M74.5,83.1 L74.5,83.1 M74.5,83.1 L74.5,83.1 M74.5,83.1 L74.5,83.2 M74.5,83.2 L74.6,83.3 M74.6,83.3 L74.6,83.3 M74.6,83.3 L74.6,83.3 M74.6,83.3 L74.7,83.3 M74.7,83.3 L74.8,83.3 M74.8,83.3 L74.8,83.3 M74.8,83.3 L74.9,83.4 M74.9,83.4 L75.0,83.4 M75.0,83.4 L75.1,83.4 M75.1,83.4 L75.3,83.5 M75.3,83.5 L75.4,83.5 M75.4,83.5 L75.4,83.5 M75.4,83.5 L75.5,83.6 M75.5,83.6 L75.5,83.7 M75.5,83.7 L75.5,83.7 M75.5,83.7 L75.6,83.7 M75.6,83.7 L75.6,83.7 M75.6,83.7 L75.7,83.7 M76.9,70.6 L76.8,70.6 M76.8,70.6 L76.5,70.5 M76.5,70.5 L76.4,70.5 M76.4,70.5 L76.2,70.5 M76.2,70.5 L76.0,70.5 M76.0,70.5 L75.9,70.4 M75.9,70.4 L75.7,70.4 M75.7,70.4 L75.4,70.3 M75.4,70.3 L75.2,70.2 M75.2,70.2 L75.0,70.1 M75.0,70.1 L74.7,70.0 M74.7,70.0 L74.6,69.9 M74.6,69.9 L74.5,69.9 M74.5,69.9 L74.3,69.9 M74.3,69.9 L74.2,69.8 M74.2,69.8 L74.1,69.8 M74.1,69.8 L74.0,69.6 M74.0,69.6 L73.9,69.5 M73.9,69.5 L73.8,69.4 M73.8,69.4 L73.7,69.3 M73.7,69.3 L73.5,69.3 M73.5,69.3 L73.4,69.2 M73.4,69.2 L73.3,69.2 M73.3,69.2 L73.1,69.2 M73.1,69.2 L72.7,69.1 M72.7,69.1 L72.4,69.0 M72.4,69.0 L72.3,68.9 M72.3,68.9 L72.2,68.8 M72.2,68.8 L72.2,68.8 M72.2,68.8 L72.2,68.7 M72.2,68.7 L72.0,68.4 M72.0,68.4 L71.8,68.2 M71.8,68.2 L71.8,68.1 M71.8,68.1 L71.7,68.0 M71.7,68.0 L71.7,68.0 M71.7,68.0 L71.6,67.8 M71.6,67.8 L71.3,67.6 M71.3,67.6 L71.1,67.6 M71.1,67.6 L71.0,67.6 M71.0,67.6 L70.8,67.7 M70.8,67.7 L70.6,68.0 M70.6,68.0 L70.4,68.1 M70.4,68.1 L70.2,68.1 M70.2,68.1 L70.1,68.1 M70.1,68.1 L70.0,68.1 M70.0,68.1 L69.9,68.2 M69.9,68.2 L69.7,68.2 M69.7,68.2 L69.5,68.2 M69.5,68.2 L69.4,68.1 M69.4,68.1 L69.3,68.0 M69.3,68.0 L69.3,68.0 M69.3,68.0 L69.3,67.9 M69.3,67.9 L69.2,67.8 M69.2,67.8 L69.1,67.7 M69.1,67.7 L69.0,67.6 M69.0,67.6 L68.9,67.5 M68.9,67.5 L68.7,67.4 M68.7,67.4 L68.6,67.3 M68.6,67.3 L68.6,67.3 M68.6,67.3 L68.5,67.2 M68.5,67.2 L68.5,67.1 M68.5,67.1 L68.4,67.0 M68.4,67.0 L68.3,67.0 M68.3,67.0 L68.1,66.9 M68.1,66.9 L67.9,66.9 M67.9,66.9 L67.8,67.0 M67.8,67.0 L67.7,66.9 M67.7,66.9 L67.7,66.9 M67.7,66.9 L67.6,66.9 M67.6,66.9 L67.5,66.8 M67.5,66.8 L67.4,66.8 M67.4,66.8 L67.2,66.8 M67.2,66.8 L67.2,66.8 M67.2,66.8 L66.9,66.6 M66.9,66.6 L66.6,66.4 M66.6,66.4 L66.5,66.4 M66.5,66.4 L66.4,66.3 M66.4,66.3 L66.2,66.3 M66.2,66.3 L66.2,66.3 M66.2,66.3 L66.1,66.2 M66.1,66.2 L65.9,66.1 M58.7,70.7 L58.7,70.8 M58.7,70.8 L58.7,70.9 M58.7,70.9 L58.7,71.1 M58.7,71.1 L58.7,71.3 M58.7,71.3 L58.7,71.3 M58.7,71.3 L58.7,71.4 M58.7,71.4 L58.6,71.4 M58.6,71.4 L58.6,71.5 M58.6,71.5 L58.5,71.5 M58.5,71.5 L58.5,71.7 M58.5,71.7 L58.5,71.8 M58.5,71.8 L58.5,71.9 M58.5,71.9 L58.5,71.9 M58.5,71.9 L58.4,72.0 M58.4,72.0 L58.4,72.0 M58.4,72.0 L58.3,72.0 M58.3,72.0 L58.3,72.0 M58.3,72.0 L58.3,72.0 M58.3,72.0 L58.3,72.0 M58.3,72.0 L58.2,72.1 M58.2,72.1 L58.2,72.1 M58.2,72.1 L58.2,72.2 M58.2,72.2 L58.2,72.2 M58.2,72.2 L58.2,72.2 M58.2,72.2 L58.2,72.2 M58.2,72.2 L58.1,72.2 M58.1,72.2 L58.1,72.1 M58.1,72.1 L58.0,72.1 M58.0,72.1 L57.9,72.1 M57.9,72.1 L57.9,72.1 M57.9,72.1 L57.9,72.1 M57.9,72.1 L57.8,72.1 M57.8,72.1 L57.8,72.1 M57.8,72.1 L57.8,72.1 M57.8,72.1 L57.7,72.2 M57.7,72.2 L57.7,72.2 M57.7,72.2 L57.7,72.2 M57.7,72.2 L57.7,72.2 M57.7,72.2 L57.6,72.2 M57.6,72.2 L57.5,72.2 M57.5,72.2 L57.4,72.2 M57.4,72.2 L57.3,72.1 M57.3,72.1 L57.3,72.1 M57.3,72.1 L57.2,72.1 M57.2,72.1 L57.2,72.1 M57.2,72.1 L57.1,72.1 M57.1,72.1 L57.1,72.1 M57.1,72.1 L57.1,72.1 M57.1,72.1 L57.0,72.1 M57.0,72.1 L57.0,72.2 M57.0,72.2 L57.0,72.2 M57.0,72.2 L57.0,72.3 M57.0,72.3 L57.0,72.3 M57.0,72.3 L56.9,72.3 M56.9,72.3 L56.9,72.4 M56.9,72.4 L56.9,72.4 M56.9,72.4 L56.8,72.4 M56.8,72.4 L56.8,72.4 M56.8,72.4 L56.8,72.5 M56.8,72.5 L56.8,72.5 M56.8,72.5 L56.7,72.5 M56.7,72.5 L56.8,72.6 M56.8,72.6 L56.8,72.6 M56.8,72.6 L56.7,72.6 M56.7,72.6 L56.7,72.6 M56.7,72.6 L56.6,72.6 M56.6,72.6 L56.6,72.6 M56.6,72.6 L56.5,72.6 M56.5,72.6 L56.5,72.6 M56.5,72.6 L56.4,72.6 M56.4,72.6 L56.3,72.6 M56.3,72.6 L56.2,72.6 M56.2,72.6 L56.1,72.6 M56.1,72.6 L56.1,72.6 M56.1,72.6 L56.0,72.6 M56.0,72.6 L56.0,72.6 M56.0,72.6 L55.9,72.7 M55.9,72.7 L55.8,72.8 M55.8,72.8 L55.8,72.8 M55.8,72.8 L55.8,72.8 M55.8,72.8 L55.8,72.9 M55.8,72.9 L55.8,73.0 M55.8,73.0 L55.7,73.1 M55.7,73.1 L55.7,73.1 M55.7,73.1 L55.7,73.1 M55.7,73.1 L55.6,73.1 M55.6,73.1 L55.6,73.1 M55.6,73.1 L55.6,73.1 M55.6,73.1 L55.6,73.1 M55.6,73.1 L55.5,73.1 M55.5,73.1 L55.5,73.1 M55.5,73.1 L55.3,73.1 M55.3,73.1 L55.2,73.1 M55.2,73.1 L55.2,73.1 M55.2,73.1 L55.2,73.1 M55.2,73.1 L55.1,73.1 M55.1,73.1 L55.1,73.2 M55.1,73.2 L55.1,73.2 M55.1,73.2 L55.1,73.2 M55.1,73.2 L55.0,73.2 M55.0,73.2 L55.0,73.2 M55.0,73.2 L54.9,73.2 M54.9,73.2 L54.9,73.2 M54.9,73.2 L54.9,73.3 M54.9,73.3 L54.8,73.3 M54.8,73.3 L54.7,73.3 M54.7,73.3 L54.7,73.3 M54.7,73.3 L54.6,73.4 M54.6,73.4 L54.6,73.4 M54.6,73.4 L54.4,73.4 M54.4,73.4 L54.4,73.4 M54.4,73.4 L54.3,73.4 M54.3,73.4 L54.3,73.5 M54.3,73.5 L54.2,73.5 M54.2,73.5 L54.2,73.5 M54.2,73.5 L54.1,73.6 M54.1,73.6 L54.0,73.6 M54.0,73.6 L54.0,73.6 M54.0,73.6 L54.0,73.6 M54.0,73.6 L53.9,73.6 M53.9,73.6 L53.8,73.6 M53.8,73.6 L53.8,73.6 M53.8,73.6 L53.7,73.6 M53.7,73.6 L53.6,73.6 M53.6,73.6 L53.6,73.6 M53.6,73.6 L53.6,73.6 M53.6,73.6 L53.5,73.6 M53.5,73.6 L53.4,73.6 M53.4,73.6 L53.3,73.6 M53.3,73.6 L53.3,73.6 M53.3,73.6 L53.3,73.6 M53.3,73.6 L53.2,73.6 M53.2,73.6 L53.2,73.6 M53.2,73.6 L53.1,73.6 M53.1,73.6 L53.1,73.7 M53.1,73.7 L53.0,73.7 M53.0,73.7 L53.0,73.8 M53.0,73.8 L52.9,73.8 M52.9,73.8 L52.9,73.8 M52.9,73.8 L52.8,73.8 M52.8,73.8 L52.7,73.8 M52.7,73.8 L52.6,73.8 M52.6,73.8 L52.5,73.8 M52.5,73.8 L52.4,73.8 M52.4,73.8 L52.3,73.7 M52.3,73.7 L52.3,73.7 M52.3,73.7 L52.2,73.7 M52.2,73.7 L52.2,73.7 M52.2,73.7 L52.2,73.7 M52.2,73.7 L52.1,73.7 M52.1,73.7 L52.1,73.7 M52.1,73.7 L52.1,73.7 M52.1,73.7 L52.0,73.7 M52.0,73.7 L52.0,73.7 M52.0,73.7 L52.0,73.6 M52.0,73.6 L51.9,73.6 M51.9,73.6 L51.9,73.6 M51.9,73.6 L51.8,73.5 M51.8,73.5 L51.8,73.5 M51.8,73.5 L51.8,73.5 M51.8,73.5 L51.7,73.4 M51.7,73.4 L51.7,73.3 M51.7,73.3 L51.7,73.3 M51.7,73.3 L51.7,73.3 M51.7,73.3 L51.6,73.3 M51.6,73.3 L51.6,73.3 M51.6,73.3 L51.6,73.3 M51.6,73.3 L51.5,73.3 M51.5,73.3 L51.5,73.3 M51.5,73.3 L51.5,73.3 M51.5,73.3 L51.5,73.3 M51.5,73.3 L51.5,73.3 M51.5,73.3 L51.5,73.3 M51.5,73.3 L51.4,73.2 M51.4,73.2 L51.3,73.3 M51.3,73.3 L51.1,73.3 M51.1,73.3 L51.0,73.4 M51.0,73.4 L50.8,73.4 M50.8,73.4 L50.7,73.4 M50.7,73.4 L50.7,73.4 M50.7,73.4 L50.6,73.4 M50.6,73.4 L50.5,73.3 M50.5,73.3 L50.5,73.3 M50.5,73.3 L50.4,73.2 M50.4,73.2 L50.4,73.2 M50.4,73.2 L50.3,73.2 M50.3,73.2 L50.3,73.2 M50.3,73.2 L50.2,73.1 M50.2,73.1 L50.2,73.1 M50.2,73.1 L50.1,73.1 M50.1,73.1 L50.1,73.1 M50.1,73.1 L50.1,73.1 M50.1,73.1 L50.1,73.1 M50.1,73.1 L50.0,73.1 M50.0,73.1 L50.0,73.1 M50.0,73.1 L49.9,73.1 M49.9,73.1 L49.9,73.1 M49.9,73.1 L49.8,73.1 M49.8,73.1 L49.8,73.1 M49.8,73.1 L49.7,73.1 M49.7,73.1 L49.7,73.1 M49.7,73.1 L49.6,73.1 M49.6,73.1 L49.6,73.1 M49.6,73.1 L49.6,73.1 M49.6,73.1 L49.5,73.1 M49.5,73.1 L49.5,73.2 M49.5,73.2 L49.5,73.2 M49.5,73.2 L49.4,73.2 M49.4,73.2 L49.4,73.2 M49.4,73.2 L49.4,73.2 M49.4,73.2 L49.3,73.3 M49.3,73.3 L49.3,73.3 M49.3,73.3 L49.2,73.4 M49.2,73.4 L49.0,73.5 M49.0,73.5 L49.0,73.5 M49.0,73.5 L48.9,73.5 M48.9,73.5 L48.8,73.6 M48.8,73.6 L48.7,73.6 M48.7,73.6 L48.6,73.6 M48.6,73.6 L48.6,73.6 M48.6,73.6 L48.6,73.6 M48.6,73.6 L48.5,73.6 M48.5,73.6 L48.5,73.7 M48.5,73.7 L48.5,73.8 M48.5,73.8 L48.5,73.8 M48.5,73.8 L48.6,73.8 M48.6,73.8 L48.6,73.9 M48.6,73.9 L48.5,73.9 M48.5,73.9 L48.5,74.0 M48.5,74.0 L48.5,74.1 M48.5,74.1 L48.4,74.1 M48.4,74.1 L48.3,74.2 M48.3,74.2 L48.3,74.2 M48.3,74.2 L48.2,74.3 M48.2,74.3 L48.2,74.3 M48.2,74.3 L48.2,74.3 M48.2,74.3 L48.2,74.3 M48.2,74.3 L48.1,74.4 M48.1,74.4 L48.0,74.4 M48.0,74.4 L48.0,74.4 M48.0,74.4 L47.9,74.4 M47.9,74.4 L47.9,74.4 M47.9,74.4 L47.8,74.4 M47.8,74.4 L47.6,74.4 M47.6,74.4 L47.5,74.3 M47.5,74.3 L47.4,74.3 M47.4,74.3 L47.2,74.4 M47.2,74.4 L47.1,74.5 M47.1,74.5 L47.0,74.6 M47.0,74.6 L47.0,74.7 M47.0,74.7 L46.9,74.7 M46.9,74.7 L46.9,74.7 M46.9,74.7 L46.9,74.8 M46.9,74.8 L46.9,74.8 M46.9,74.8 L46.8,74.8 M46.8,74.8 L46.7,74.9 M46.7,74.9 L46.6,74.9 M46.6,74.9 L46.5,74.9 M46.5,74.9 L46.4,75.0 M46.4,75.0 L46.3,75.0 M46.3,75.0 L46.1,75.1 M46.1,75.1 L46.1,75.1 M60.3,40.9 L60.2,40.9 M60.2,40.9 L60.1,40.9 M60.1,40.9 L59.9,41.0 M59.9,41.0 L59.8,41.0 M59.8,41.0 L59.8,41.0 M59.8,41.0 L59.6,41.1 M59.6,41.1 L59.3,41.2 M59.3,41.2 L59.2,41.3 M59.2,41.3 L59.1,41.3 M59.1,41.3 L59.0,41.3 M59.0,41.3 L59.0,41.3 M59.0,41.3 L59.0,41.4 M59.0,41.4 L58.9,41.4 M58.9,41.4 L58.7,41.6 M58.7,41.6 L58.5,41.7 M58.5,41.7 L58.4,41.6 M58.4,41.6 L58.4,41.6 M58.4,41.6 L58.3,41.7 M58.3,41.7 L58.3,41.8 M58.3,41.8 L58.4,41.8 M58.4,41.8 L58.4,41.9 M58.4,41.9 L58.4,41.9 M58.4,41.9 L58.5,42.0 M58.5,42.0 L58.5,42.1 M58.5,42.1 L58.5,42.2 M58.5,42.2 L58.4,42.2 M58.4,42.2 L58.3,42.3 M58.3,42.3 L58.2,42.3 M58.2,42.3 L58.0,42.3 M58.0,42.3 L57.9,42.3 M57.9,42.3 L57.7,42.3 M57.7,42.3 L57.6,42.4 M57.6,42.4 L57.3,42.5 M57.3,42.5 L57.2,42.5 M57.2,42.5 L57.1,42.6 M57.1,42.6 L57.0,42.8 M57.0,42.8 L57.0,42.8 M57.0,42.8 L56.9,42.9 M56.9,42.9 L56.9,43.0 M56.9,43.0 L56.9,43.0 M56.9,43.0 L56.8,43.0 M56.8,43.0 L56.7,43.1 M56.7,43.1 L56.4,43.2 M56.4,43.2 L56.2,43.3 M56.2,43.3 L56.1,43.3 M56.1,43.3 L55.9,43.3 M55.9,43.3 L55.8,43.4 M55.8,43.4 L55.8,43.5 M55.8,43.5 L55.8,43.5 M55.8,43.5 L55.9,43.6 M55.9,43.6 L55.9,43.7 M55.9,43.7 L55.9,43.7 M55.9,43.7 L55.8,43.8 M55.8,43.8 L55.8,43.8 M55.8,43.8 L55.7,43.7 M55.7,43.7 L55.5,43.8 M55.5,43.8 L55.4,43.8 M55.4,43.8 L55.3,43.9 M55.3,43.9 L55.2,44.0 M55.2,44.0 L55.1,44.0 M55.1,44.0 L54.8,44.1 M54.8,44.1 L54.7,44.2 M54.7,44.2 L54.6,44.2 M54.6,44.2 L54.6,44.2 M54.6,44.2 L54.5,44.2 M54.5,44.2 L54.5,44.2 M54.5,44.2 L54.4,44.0 M54.4,44.0 L54.4,43.9 M54.4,43.9 L54.2,43.9 M54.2,43.9 L54.1,43.9 M54.1,43.9 L54.0,44.1 M54.0,44.1 L54.0,44.2 M54.0,44.2 L53.9,44.4 M53.9,44.4 L53.9,44.4 M53.9,44.4 L53.9,44.5 M53.9,44.5 L53.8,44.5 M53.8,44.5 L53.6,44.5 M53.6,44.5 L53.6,44.5 M53.6,44.5 L53.4,44.4 M53.4,44.4 L53.3,44.3 M53.3,44.3 L53.3,44.3 M53.3,44.3 L53.0,44.2 M53.0,44.2 L52.7,44.3 M52.7,44.3 L52.5,44.3 M52.5,44.3 L52.4,44.4 M52.4,44.4 L52.4,44.5 M52.4,44.5 L52.4,44.5 M52.4,44.5 L52.5,44.6 M52.5,44.6 L52.5,44.8 M52.5,44.8 L52.4,45.1 M52.4,45.1 L52.4,45.3 M52.4,45.3 L52.4,45.4 M52.4,45.4 L52.3,45.5 M52.3,45.5 L52.3,45.7 M52.3,45.7 L52.1,45.8 M52.1,45.8 L51.9,46.0 M51.9,46.0 L51.7,46.1 M51.7,46.1 L51.7,46.2 M51.7,46.2 L51.7,46.4 M51.7,46.4 L51.6,46.5 M51.6,46.5 L51.6,46.5 M51.6,46.5 L51.6,46.6 M51.6,46.6 L51.5,46.6 M51.5,46.6 L51.5,46.7 M51.5,46.7 L51.3,46.8 M51.3,46.8 L51.3,47.1 M51.3,47.1 L51.1,47.4 M51.1,47.4 L51.0,47.5 M51.0,47.5 L50.9,47.5 M50.9,47.5 L50.7,47.6 M50.7,47.6 L50.5,47.7 M50.5,47.7 L50.4,47.7 M50.4,47.7 L50.2,47.8 M50.2,47.8 L50.0,47.9 M50.0,47.9 L49.8,48.0 M49.8,48.0 L49.6,48.1 M49.6,48.1 L49.3,48.2 M49.3,48.2 L49.1,48.3 M49.1,48.3 L49.0,48.4 M49.0,48.4 L48.7,48.7 M48.7,48.7 L48.6,48.9 M48.6,48.9 L48.4,49.1 M48.4,49.1 L48.0,49.3 M48.0,49.3 L48.0,49.5 M48.0,49.5 L48.0,49.7 M48.0,49.7 L48.1,49.9 M48.1,49.9 L48.2,50.0 M48.2,50.0 L48.3,50.2 M48.3,50.2 L48.4,50.4 M48.4,50.4 L48.6,50.8 M48.6,50.8 L48.7,51.1 M48.7,51.1 L48.7,51.4 M48.7,51.4 L48.8,51.6 M48.8,51.6 L48.8,51.7 M48.8,51.7 L48.7,51.6 M48.7,51.6 L48.5,51.6 M48.5,51.6 L48.2,51.5 M48.2,51.5 L48.0,51.5 M48.0,51.5 L47.8,51.6 M47.8,51.6 L47.6,51.6 M47.6,51.6 L47.5,51.7 M47.5,51.7 L47.4,51.7 M47.4,51.7 L47.3,51.8 M47.3,51.8 L47.4,52.1 M47.4,52.1 L47.5,52.4 M47.5,52.4 L47.5,52.6 M47.5,52.6 L47.6,52.7 M47.6,52.7 L47.6,52.8 M47.6,52.8 L47.6,52.9 M47.6,52.9 L47.5,53.1 M47.5,53.1 L47.3,53.2 M47.3,53.2 L47.3,53.5 M47.3,53.5 L47.2,53.7 M47.2,53.7 L47.2,53.9 M47.2,53.9 L47.3,54.0 M47.3,54.0 L47.3,54.1 M47.3,54.1 L47.2,54.3 M47.2,54.3 L47.2,54.4 M47.2,54.4 L47.2,54.5 M47.2,54.5 L47.2,54.7 M47.2,54.7 L47.2,54.9 M47.2,54.9 L47.2,55.2 M47.2,55.2 L47.3,55.3 M47.3,55.3 L47.4,55.3 M47.4,55.3 L47.7,55.3 M47.7,55.3 L47.9,55.2 M47.9,55.2 L48.2,55.0 M48.2,55.0 L48.3,54.9 M48.3,54.9 L48.5,54.9 M48.5,54.9 L48.7,55.0 M48.7,55.0 L48.9,55.2 M48.9,55.2 L49.2,55.3 M49.2,55.3 L49.5,55.4 M49.5,55.4 L49.7,55.3 M49.7,55.3 L50.0,55.4 M50.0,55.4 L50.3,55.5 M50.3,55.5 L50.6,55.8 M50.6,55.8 L50.9,55.8 M50.9,55.8 L51.1,55.8 M51.1,55.8 L51.3,55.9 M51.3,55.9 L51.4,56.0 M51.4,56.0 L51.4,55.9 M51.4,55.9 L51.4,55.6 M51.4,55.6 L51.5,55.3 M51.5,55.3 L51.5,55.1 M51.5,55.1 L51.6,55.0 M51.6,55.0 L51.7,54.9 M51.7,54.9 L51.9,54.8 M51.9,54.8 L52.0,54.7 M52.0,54.7 L52.2,54.6 M52.2,54.6 L52.3,54.7 M52.3,54.7 L52.4,54.6 M52.4,54.6 L52.5,54.5 M52.5,54.5 L52.5,54.3 M52.5,54.3 L52.7,54.2 M52.7,54.2 L52.9,54.2 M52.9,54.2 L53.1,54.3 M53.1,54.3 L53.4,54.5 M53.4,54.5 L53.5,54.5 M53.5,54.5 L53.6,54.5 M53.6,54.5 L53.7,54.4 M53.7,54.4 L53.8,54.4 M53.8,54.4 L54.0,54.4 M54.0,54.4 L54.2,54.4 M54.2,54.4 L54.3,54.3 M54.3,54.3 L54.5,54.2 M54.5,54.2 L54.6,54.1 M54.6,54.1 L54.7,53.9 M54.7,53.9 L54.8,53.7 M54.8,53.7 L54.9,53.6 M54.9,53.6 L55.1,53.5 M55.1,53.5 L55.3,53.4 M55.3,53.4 L55.7,53.3 M55.7,53.3 L56.0,53.3 M56.0,53.3 L56.2,53.2 M56.2,53.2 L56.6,53.2 M56.6,53.2 L57.0,53.2 M57.0,53.2 L57.4,53.2 M57.4,53.2 L57.6,53.2 M57.6,53.2 L57.9,53.2 M57.9,53.2 L58.0,53.2 M58.0,53.2 L58.3,53.1 M58.3,53.1 L58.7,53.1 M58.7,53.1 L58.8,53.1 M58.8,53.1 L59.0,53.1 M59.0,53.1 L59.2,53.0 M59.2,53.0 L59.4,53.0 M59.4,53.0 L59.7,52.9 M59.7,52.9 L59.9,52.9 M59.9,52.9 L60.1,53.0 M60.1,53.0 L60.1,53.2 M60.1,53.2 L60.1,53.7 M60.1,53.7 L60.1,54.0 M60.1,54.0 L60.1,54.2 M60.1,54.2 L60.2,54.3 M60.2,54.3 L60.3,54.5 M60.3,54.5 L60.5,54.5 M60.5,54.5 L60.6,54.5 M60.6,54.5 L60.7,54.5 M60.7,54.5 L60.9,54.6 M60.9,54.6 L61.0,54.6 M61.0,54.6 L61.2,54.5 M61.2,54.5 L61.3,54.4 M61.3,54.4 L61.6,54.5 M61.6,54.5 L62.0,54.5 M62.0,54.5 L62.2,54.6 M62.2,54.6 L62.4,54.6 M62.4,54.6 L62.8,54.7 M62.8,54.7 L63.0,54.6 M63.0,54.6 L63.1,54.7 M63.1,54.7 L63.2,54.8 M63.2,54.8 L63.5,54.9 M63.5,54.9 L63.6,55.0 M63.6,55.0 L63.7,55.1 M63.7,55.1 L63.8,55.2 M63.8,55.2 L64.0,55.3 M64.0,55.3 L64.1,55.3 M64.1,55.3 L64.5,55.2 M64.5,55.2 L64.8,55.0 M64.8,55.0 L65.1,55.0 M65.1,55.0 L65.5,54.8 M65.5,54.8 L65.6,54.7 M65.6,54.7 L65.6,54.7 M65.6,54.7 L65.8,54.8 M65.8,54.8 L66.1,54.9 M66.1,54.9 L66.5,55.0 M66.5,55.0 L66.7,55.0 M66.7,55.0 L66.7,55.0 M39.5,23.5 L39.6,23.7 M39.6,23.7 L39.9,23.9 M39.9,23.9 L39.9,24.0 M39.9,24.0 L40.3,24.3 M40.3,24.3 L40.4,24.4 M40.4,24.4 L40.6,24.5 M40.6,24.5 L40.8,24.6 M40.8,24.6 L40.9,24.8 M40.9,24.8 L40.9,25.0 M40.9,25.0 L41.0,25.1 M41.0,25.1 L41.0,25.3 M41.0,25.3 L41.1,25.4 M41.1,25.4 L41.1,25.4 M41.1,25.4 L41.2,25.5 M41.2,25.5 L41.2,25.6 M41.2,25.6 L41.3,26.0 M41.3,26.0 L41.4,26.3 M41.4,26.3 L41.4,26.3 M41.4,26.3 L41.6,26.6 M41.6,26.6 L41.8,27.1 M41.8,27.1 L42.0,27.5 M42.0,27.5 L42.0,27.6 M42.0,27.6 L42.1,28.2 M42.1,28.2 L42.3,28.9 M42.3,28.9 L42.4,29.4 M42.4,29.4 L42.3,29.6 M42.3,29.6 L42.3,29.7 M42.3,29.7 L42.3,29.7 M42.3,29.7 L42.3,29.7 M42.3,29.7 L42.4,29.8 M42.4,29.8 L42.4,29.9 M42.4,29.9 L42.4,29.9 M42.4,29.9 L42.5,30.0 M42.5,30.0 L42.7,30.1 M42.7,30.1 L42.8,30.3 M42.8,30.3 L42.9,30.5 M42.9,30.5 L42.9,30.6 M42.9,30.6 L43.1,31.1 M43.1,31.1 L43.6,32.0 M43.6,32.0 L43.9,32.3 M43.9,32.3 L44.0,32.4 M44.0,32.4 L44.2,32.7 M44.2,32.7 L44.4,32.8 M44.4,32.8 L44.4,32.8 M44.4,32.8 L44.5,33.0 M44.5,33.0 L44.6,33.2 M44.6,33.2 L44.7,33.3 M44.7,33.3 L44.8,33.4 M44.8,33.4 L44.8,33.5 M44.8,33.5 L44.9,33.6 M44.9,33.6 L44.9,33.8 M44.9,33.8 L44.9,33.9 M44.9,33.9 L44.9,34.0 M44.9,34.0 L45.0,34.0 M45.0,34.0 L45.0,34.1 M45.0,34.1 L45.0,34.2 M45.0,34.2 L45.0,34.2 M45.0,34.2 L45.0,34.4 M45.0,34.4 L45.1,34.6 M45.1,34.6 L45.1,34.7 M45.1,34.7 L45.0,34.8 M45.0,34.8 L45.0,34.9 M45.0,34.9 L45.0,35.2 M45.0,35.2 L45.0,35.2 M45.0,35.2 L44.9,35.3 M44.9,35.3 L44.8,35.5 M44.8,35.5 L44.7,35.5 M44.7,35.5 L44.6,35.6 M44.6,35.6 L44.6,35.6 M44.6,35.6 L44.5,35.6 M44.5,35.6 L44.2,35.7 M44.2,35.7 L44.0,35.9 M44.0,35.9 L44.0,36.0 M44.0,36.0 L43.9,36.0 M43.9,36.0 L43.9,36.0 M43.9,36.0 L43.8,36.1 M43.8,36.1 L43.9,36.1 M43.9,36.1 L43.9,36.1 M43.9,36.1 L43.9,36.2 M43.9,36.2 L43.8,36.3 M43.8,36.3 L43.8,36.4 M43.8,36.4 L43.8,36.5 M43.8,36.5 L43.8,36.6 M43.8,36.6 L43.8,36.8 M43.8,36.8 L43.8,36.9 M43.8,36.9 L43.8,37.0 M43.8,37.0 L43.8,37.0 M43.8,37.0 L43.7,37.1 M43.7,37.1 L43.6,37.1 M43.6,37.1 L43.6,37.2 M43.6,37.2 L43.5,37.3 M43.5,37.3 L43.4,37.4 M43.4,37.4 L43.4,37.5 M43.4,37.5 L43.4,37.5 M43.4,37.5 L43.4,37.6 M43.4,37.6 L43.4,37.8 M43.4,37.8 L43.3,38.1 M43.3,38.1 L43.3,38.2 M43.3,38.2 L43.3,38.2 M43.3,38.2 L43.2,38.3 M43.2,38.3 L43.2,38.4 M43.2,38.4 L43.1,38.5 M43.1,38.5 L43.0,38.6 M43.0,38.6 L42.9,38.8 M42.9,38.8 L42.9,38.8 M42.9,38.8 L42.9,38.9 M42.9,38.9 L42.8,39.0 M42.8,39.0 L42.7,39.2 M42.7,39.2 L42.6,39.4 M42.6,39.4 L42.6,39.5 M42.6,39.5 L42.5,39.6 M42.5,39.6 L42.4,39.6 M42.4,39.6 L42.3,39.7 M42.3,39.7 L42.3,39.7 M42.3,39.7 L42.2,39.8 M42.2,39.8 L42.2,39.8 M42.2,39.8 L42.1,39.9 M42.1,39.9 L42.0,40.0 M42.0,40.0 L42.0,40.1 M42.0,40.1 L41.9,40.1 M41.9,40.1 L41.8,40.1 M41.8,40.1 L41.7,40.1 M41.7,40.1 L41.6,40.2 M41.6,40.2 L41.6,40.2 M41.6,40.2 L41.6,40.3 M41.6,40.3 L41.5,40.6 M41.5,40.6 L41.5,40.7 M41.5,40.7 L41.5,40.8 M41.5,40.8 L41.5,40.9 M41.5,40.9 L41.6,40.9 M41.6,40.9 L41.6,41.1 M41.6,41.1 L41.7,41.2 M41.7,41.2 L41.7,41.3 M41.7,41.3 L41.7,41.4 M41.7,41.4 L41.7,41.8 M41.7,41.8 L41.7,41.9 M41.7,41.9 L41.8,42.3 M41.8,42.3 L41.8,42.4 M41.8,42.4 L41.8,42.5 M41.8,42.5 L41.8,42.5 M41.8,42.5 L41.7,42.5 M41.7,42.5 L41.6,42.5 M41.6,42.5 L41.5,42.6 M41.5,42.6 L41.3,42.6 M41.3,42.6 L41.1,42.6 M41.1,42.6 L41.0,42.7 M41.0,42.7 L40.8,42.8 M40.8,42.8 L40.7,42.9 M40.7,42.9 L40.7,43.1 M40.7,43.1 L40.6,43.1 M40.6,43.1 L40.5,43.0 M40.5,43.0 L40.3,42.9 M40.3,42.9 L40.1,42.9 M40.1,42.9 L40.0,42.9 M40.0,42.9 L39.9,42.9 M39.9,42.9 L39.8,43.0 M39.8,43.0 L39.6,43.0 M39.6,43.0 L39.3,43.0 M39.3,43.0 L39.0,43.1 M39.0,43.1 L38.9,43.0 M38.9,43.0 L38.8,43.0 M38.8,43.0 L38.8,43.0 M38.8,43.0 L38.8,42.9 M38.8,42.9 L38.7,43.0 M38.7,43.0 L38.5,43.0 M38.5,43.0 L38.3,43.0 M38.3,43.0 L38.4,43.0 M38.4,43.0 L38.5,43.1 M38.5,43.1 L38.6,43.2 M38.6,43.2 L38.6,43.2 M38.6,43.2 L38.9,43.6 M38.9,43.6 L38.9,43.6 M38.9,43.6 L39.2,44.0 M39.2,44.0 L39.3,44.2 M39.3,44.2 L39.6,44.7 M39.6,44.7 L39.7,44.8 M39.7,44.8 L40.2,45.6 M40.2,45.6 L40.3,45.8 M40.3,45.8 L40.3,45.8 M40.3,45.8 L40.3,45.8 M40.3,45.8 L40.5,45.9 M40.5,45.9 L40.7,45.9 M40.7,45.9 L40.9,46.0 M40.9,46.0 L41.0,46.2 M41.0,46.2 L41.1,46.3 M41.1,46.3 L41.2,46.3 M41.2,46.3 L41.1,46.4 M41.1,46.4 L41.1,46.4 M41.1,46.4 L41.0,46.6 M41.0,46.6 L41.0,46.8 M41.0,46.8 L41.0,47.1 M41.0,47.1 L41.0,47.1 M41.0,47.1 L40.9,47.2 M40.9,47.2 L40.9,47.2 M40.9,47.2 L41.0,47.3 M41.0,47.3 L41.1,47.3 M41.1,47.3 L41.1,47.3 M41.1,47.3 L41.2,47.4 M41.2,47.4 L41.2,47.6 M41.2,47.6 L41.2,47.6 M41.2,47.6 L41.3,47.6 M41.3,47.6 L41.3,47.7 M41.3,47.7 L41.3,47.7 M41.3,47.7 L41.3,47.7 M41.3,47.7 L41.2,47.8 M41.2,47.8 L41.2,47.9 M41.2,47.9 L41.2,47.9 M41.2,47.9 L41.2,48.0 M41.2,48.0 L41.2,48.1 M41.2,48.1 L41.2,48.1 M41.2,48.1 L41.3,48.2 M41.3,48.2 L41.3,48.2 M41.3,48.2 L41.5,48.3 M41.5,48.3 L41.5,48.3 M41.5,48.3 L41.6,48.4 M41.6,48.4 L41.6,48.4 M41.6,48.4 L41.6,48.4 M41.6,48.4 L41.7,48.5 M41.7,48.5 L41.9,48.6 M41.9,48.6 L42.0,48.7 M42.0,48.7 L42.0,48.7 M42.0,48.7 L42.1,48.8 M42.1,48.8 L42.2,49.0 M42.2,49.0 L42.2,49.0 M42.2,49.0 L42.3,49.1 M42.3,49.1 L42.3,49.1 M42.3,49.1 L42.4,49.2 M42.4,49.2 L42.5,49.3 M42.5,49.3 L42.6,49.4 M42.6,49.4 L42.7,49.4 M42.7,49.4 L42.7,49.4 M42.7,49.4 L42.8,49.4 M42.8,49.4 L42.9,49.3 M42.9,49.3 L43.0,49.3 M43.0,49.3 L43.1,49.3 M43.1,49.3 L43.1,49.3 M43.1,49.3 L43.2,49.4 M43.2,49.4 L43.2,49.4 M43.2,49.4 L43.3,49.5 M43.3,49.5 L43.4,49.5 M43.4,49.5 L43.4,49.6 M43.4,49.6 L43.5,49.6 M43.5,49.6 L43.6,49.5 M43.6,49.5 L43.7,49.4 M43.7,49.4 L43.8,49.3 M43.8,49.3 L43.9,49.1 M43.9,49.1 L44.0,49.0 M44.0,49.0 L44.1,48.9 M44.1,48.9 L44.2,48.8 M44.2,48.8 L44.4,48.7 M44.4,48.7 L44.6,48.4 M44.6,48.4 L44.7,48.2 M44.7,48.2 L44.8,48.2 M44.8,48.2 L45.0,48.0 M45.0,48.0 L45.1,48.0 M45.1,48.0 L45.1,48.0 M45.1,48.0 L45.2,48.1 M45.2,48.1 L45.3,48.1 M45.3,48.1 L45.3,48.1 M45.3,48.1 L45.3,48.1 M45.3,48.1 L45.4,48.1 M45.4,48.1 L45.4,48.0 M45.4,48.0 L45.5,48.0 M45.5,48.0 L45.6,48.0 M45.6,48.0 L45.7,48.1 M45.7,48.1 L45.8,48.3 M45.8,48.3 L45.9,48.5 M45.9,48.5 L45.9,48.6 M45.9,48.6 L46.0,48.6 M46.0,48.6 L46.2,48.8 M46.2,48.8 L46.4,48.9 M46.4,48.9 L46.6,48.9 M46.6,48.9 L46.9,48.9 M46.9,48.9 L47.1,48.9 M47.1,48.9 L47.3,48.9 M47.3,48.9 L47.4,49.0 M47.4,49.0 L47.5,49.1 M47.5,49.1 L47.9,49.2 M47.9,49.2 L48.0,49.3 M38.8,42.9 L38.7,42.8 M38.7,42.8 L38.6,42.7 M38.6,42.7 L38.6,42.6 M38.6,42.6 L38.6,42.5 M38.6,42.5 L38.5,42.5 M38.5,42.5 L38.4,42.4 M38.4,42.4 L38.3,42.4 M38.3,42.4 L38.2,42.3 M38.2,42.3 L38.2,42.3 M38.2,42.3 L38.2,42.3 M38.2,42.3 L38.1,42.3 M38.1,42.3 L38.1,42.4 M38.1,42.4 L38.1,42.4 M38.1,42.4 L38.0,42.4 M38.0,42.4 L37.9,42.5 M37.9,42.5 L37.7,42.5 M37.7,42.5 L37.7,42.5 M37.7,42.5 L37.7,42.5 M37.7,42.5 L37.5,42.6 M37.5,42.6 L37.3,42.7 M37.3,42.7 L37.3,42.7 M37.3,42.7 L37.3,42.8 M37.3,42.8 L37.4,42.9 M37.4,42.9 L37.4,43.0 M37.4,43.0 L37.5,43.1 M37.5,43.1 L37.5,43.1 M37.5,43.1 L37.6,43.3 M37.6,43.3 L37.6,43.6 M37.6,43.6 L37.6,43.8 M37.6,43.8 L37.6,43.9 M37.6,43.9 L37.7,44.0 M37.7,44.0 L37.7,44.0 M37.7,44.0 L37.7,44.2 M37.7,44.2 L37.7,44.4 M37.7,44.4 L37.6,44.8 M37.6,44.8 L37.4,45.1 M37.4,45.1 L37.1,45.4 M37.1,45.4 L36.8,45.7 M36.8,45.7 L36.8,45.9 M36.8,45.9 L36.7,46.0 M36.7,46.0 L36.7,46.0 M36.7,46.0 L36.6,46.1 M36.6,46.1 L36.6,46.1 M36.6,46.1 L36.5,46.1 M36.5,46.1 L36.5,46.2 M36.5,46.2 L36.5,46.2 M36.5,46.2 L36.5,46.4 M36.5,46.4 L36.5,46.5 M36.5,46.5 L36.5,46.5 M36.5,46.5 L36.4,46.7 M36.4,46.7 L36.4,46.7 M36.4,46.7 L36.4,46.8 M36.4,46.8 L36.4,46.9 M36.4,46.9 L36.3,46.9 M36.3,46.9 L36.3,46.9 M36.3,46.9 L36.3,47.0 M36.3,47.0 L36.3,47.0 M36.3,47.0 L36.3,47.1 M36.3,47.1 L36.2,47.1 M36.2,47.1 L36.1,47.2 M36.1,47.2 L36.0,47.3 M36.0,47.3 L36.0,47.3 M36.0,47.3 L36.0,47.4 M36.0,47.4 L35.9,47.5 M35.9,47.5 L35.8,47.6 M35.8,47.6 L35.7,47.7 M35.7,47.7 L35.7,47.8 M35.7,47.8 L35.7,47.9 M35.7,47.9 L35.7,47.9 M35.7,47.9 L35.7,48.0 M35.7,48.0 L35.7,48.1 M35.7,48.1 L35.7,48.2 M35.7,48.2 L35.7,48.2 M35.7,48.2 L35.7,48.3 M35.7,48.3 L35.7,48.5 M35.7,48.5 L35.7,48.5 M35.7,48.5 L35.6,48.6 M35.6,48.6 L35.6,48.6 M35.6,48.6 L35.6,48.6 M35.6,48.6 L35.6,48.6 M35.6,48.6 L35.5,48.7 M35.5,48.7 L35.4,48.7 M35.4,48.7 L35.4,48.8 M35.4,48.8 L35.3,48.9 M35.3,48.9 L35.3,49.0 M35.3,49.0 L35.3,49.2 M35.3,49.2 L35.2,49.2 M35.2,49.2 L35.1,49.4 M35.1,49.4 L35.0,49.5 M35.0,49.5 L35.0,49.6 M35.0,49.6 L34.9,49.7 M34.9,49.7 L34.8,49.8 M34.8,49.8 L34.7,49.9 M34.7,49.9 L34.7,49.9 M34.7,49.9 L34.6,50.0 M34.6,50.0 L34.6,50.0 M34.6,50.0 L34.5,50.1 M34.5,50.1 L34.5,50.1 M34.5,50.1 L34.3,50.2 M34.3,50.2 L34.1,50.3 M34.1,50.3 L34.0,50.4 M34.0,50.4 L34.0,50.4 M34.0,50.4 L34.0,50.3 M34.0,50.3 L33.9,50.3 M33.9,50.3 L33.9,50.3 M33.9,50.3 L33.9,50.3 M33.9,50.3 L33.8,50.2 M33.8,50.2 L33.8,50.2 M33.8,50.2 L33.7,50.1 M33.7,50.1 L33.6,50.1 M33.6,50.1 L33.6,50.1 M33.6,50.1 L33.5,50.0 M33.5,50.0 L33.5,50.0 M33.5,50.0 L33.4,50.1 M33.4,50.1 L33.3,50.1 M33.3,50.1 L33.2,50.2 M24.2,24.2 L24.2,24.2 M24.2,24.2 L24.3,24.3 M24.3,24.3 L24.3,24.3 M24.3,24.3 L24.4,24.3 M24.4,24.3 L24.5,24.4 M24.5,24.4 L24.6,24.4 M24.6,24.4 L24.7,24.5 M24.7,24.5 L24.7,24.5 M24.7,24.5 L24.8,24.5 M24.8,24.5 L24.8,24.6 M24.8,24.6 L24.8,24.6 M24.8,24.6 L24.9,24.6 M24.9,24.6 L24.9,24.6 M24.9,24.6 L25.0,24.6 M25.0,24.6 L25.0,24.6 M25.0,24.6 L25.1,24.6 M25.1,24.6 L25.1,24.6 M25.1,24.6 L25.2,24.6 M25.2,24.6 L25.2,24.6 M25.2,24.6 L25.3,24.6 M25.3,24.6 L25.3,24.5 M25.3,24.5 L25.4,24.5 M25.4,24.5 L25.4,24.5 M25.4,24.5 L25.5,24.5 M25.5,24.5 L25.5,24.6 M25.5,24.6 L25.5,24.6 M25.5,24.6 L25.6,24.7 M25.6,24.7 L25.6,24.7 M25.6,24.7 L25.6,24.8 M25.6,24.8 L25.6,24.8 M25.6,24.8 L25.6,24.9 M25.6,24.9 L25.6,25.0 M25.6,25.0 L25.6,25.0 M25.6,25.0 L25.6,25.1 M25.6,25.1 L25.6,25.1 M25.6,25.1 L25.6,25.2 M25.6,25.2 L25.6,25.3 M25.6,25.3 L25.6,25.3 M25.6,25.3 L25.6,25.4 M25.6,25.4 L25.6,25.4 M25.6,25.4 L25.6,25.5 M25.6,25.5 L25.7,25.5 M25.7,25.5 L25.7,25.6 M25.7,25.6 L25.7,25.6 M25.7,25.6 L25.8,25.7 M25.8,25.7 L25.8,25.7 M25.8,25.7 L25.8,25.7 M25.8,25.7 L25.8,25.8 M25.8,25.8 L25.8,25.8 M25.8,25.8 L25.9,25.9 M25.9,25.9 L25.9,25.9 M25.9,25.9 L25.9,25.9 M25.9,25.9 L25.9,26.0 M25.9,26.0 L26.0,26.0 M26.0,26.0 L26.0,26.1 M26.0,26.1 L26.0,26.1 M26.0,26.1 L26.0,26.1 M26.0,26.1 L26.0,26.1 M26.0,26.1 L26.1,26.1 M26.1,26.1 L26.1,26.2 M26.1,26.2 L26.1,26.2 M26.1,26.2 L26.1,26.3 M26.1,26.3 L26.2,26.3 M26.2,26.3 L26.2,26.3 M26.2,26.3 L26.3,26.3 M26.3,26.3 L26.3,26.3 M26.3,26.3 L26.3,26.3 M26.3,26.3 L26.4,26.4 M26.4,26.4 L26.5,26.4 M26.5,26.4 L26.5,26.5 M26.5,26.5 L26.5,26.5 M26.5,26.5 L26.5,26.5 M26.5,26.5 L26.5,26.5 M26.5,26.5 L26.5,26.6 M26.5,26.6 L26.5,26.6 M26.5,26.6 L26.6,26.6 M26.6,26.6 L26.6,26.6 M26.6,26.6 L26.6,26.6 M26.6,26.6 L26.7,26.7 M26.7,26.7 L26.7,26.7 M26.7,26.7 L26.7,26.8 M26.7,26.8 L26.7,26.8 M26.7,26.8 L26.7,26.8 M26.7,26.8 L26.7,26.9 M26.7,26.9 L26.7,26.9 M26.7,26.9 L26.7,27.0 M26.7,27.0 L26.7,27.0 M26.7,27.0 L26.8,27.1 M26.8,27.1 L26.8,27.2 M26.8,27.2 L26.8,27.2 M26.8,27.2 L26.8,27.3 M26.8,27.3 L26.8,27.4 M26.8,27.4 L26.8,27.5 M26.8,27.5 L26.8,27.5 M26.8,27.5 L26.8,27.6 M26.8,27.6 L26.7,27.6 M26.7,27.6 L26.7,27.7 M26.7,27.7 L26.7,27.7 M26.7,27.7 L26.7,27.7 M26.7,27.7 L26.7,27.7 M26.7,27.7 L26.7,27.8 M26.7,27.8 L26.7,27.9 M26.7,27.9 L26.8,27.9 M26.8,27.9 L26.8,28.0 M26.8,28.0 L26.8,28.1 M26.8,28.1 L26.9,28.2 M26.9,28.2 L27.0,28.2 M27.0,28.2 L27.0,28.2 M27.0,28.2 L27.1,28.2 M27.1,28.2 L27.2,28.2 M27.2,28.2 L27.2,28.2 M27.2,28.2 L27.3,28.2 M27.3,28.2 L27.3,28.2 M27.3,28.2 L27.4,28.2 M27.4,28.2 L27.4,28.2 M27.4,28.2 L27.5,28.3 M27.5,28.3 L27.5,28.3 M27.5,28.3 L27.6,28.4 M27.6,28.4 L27.7,28.4 M27.7,28.4 L27.9,28.5 M27.9,28.5 L28.0,28.5 M28.0,28.5 L28.1,28.5 M28.1,28.5 L28.2,28.5 M28.2,28.5 L28.2,28.6 M28.2,28.6 L28.2,28.6 M28.2,28.6 L28.3,28.6 M28.3,28.6 L28.4,28.7 M28.4,28.7 L28.4,28.7 M28.4,28.7 L28.4,28.8 M28.4,28.8 L28.5,28.9 M28.5,28.9 L28.5,29.0 M28.5,29.0 L28.6,29.1 M28.6,29.1 L28.6,29.2 M28.6,29.2 L28.7,29.3 M28.7,29.3 L28.7,29.4 M28.7,29.4 L28.7,29.5 M28.7,29.5 L28.7,29.6 M28.7,29.6 L28.7,29.6 M28.7,29.6 L28.7,29.6 M28.7,29.6 L28.7,29.7 M28.7,29.7 L28.7,29.7 M28.7,29.7 L28.7,29.7 M28.7,29.7 L28.8,29.8 M28.8,29.8 L28.8,29.9 M28.8,29.9 L28.8,29.9 M28.8,29.9 L28.8,30.0 M28.8,30.0 L28.8,30.0 M28.8,30.0 L28.9,30.1 M28.9,30.1 L28.9,30.1 M28.9,30.1 L28.9,30.1 M28.9,30.1 L28.9,30.2 M28.9,30.2 L29.0,30.2 M29.0,30.2 L28.9,30.3 M28.9,30.3 L28.9,30.4 M28.9,30.4 L28.9,30.4 M28.9,30.4 L28.9,30.4 M28.9,30.4 L28.9,30.4 M28.9,30.4 L28.9,30.5 M28.9,30.5 L28.9,30.6 M28.9,30.6 L29.0,30.7 M29.0,30.7 L29.1,30.7 M29.1,30.7 L29.1,30.8 M29.1,30.8 L29.2,30.8 M29.2,30.8 L29.2,30.9 M29.2,30.9 L29.2,30.9 M29.2,30.9 L29.2,31.0 M29.2,31.0 L29.2,31.0 M29.2,31.0 L29.2,31.1 M29.2,31.1 L29.2,31.1 M29.2,31.1 L29.2,31.2 M29.2,31.2 L29.2,31.3 M29.2,31.3 L29.3,31.4 M29.3,31.4 L29.3,31.5 M29.3,31.5 L29.3,31.5 M29.3,31.5 L29.4,31.6 M29.4,31.6 L29.4,31.6 M29.4,31.6 L29.5,31.7 M29.5,31.7 L29.6,31.8 M29.6,31.8 L29.7,31.8 M29.7,31.8 L29.7,31.9 M29.7,31.9 L29.8,31.9 M29.8,31.9 L29.8,32.1 M29.8,32.1 L29.8,32.2 M29.8,32.2 L29.8,32.2 M29.8,32.2 L29.8,32.3 M29.8,32.3 L29.8,32.4 M29.8,32.4 L29.9,32.5 M29.9,32.5 L29.9,32.7 M29.9,32.7 L29.9,32.8 M29.9,32.8 L29.9,32.9 M29.9,32.9 L30.0,33.0 M30.0,33.0 L30.0,33.2 M30.0,33.2 L30.0,33.3 M30.0,33.3 L29.9,33.3 M29.9,33.3 L29.9,33.4 M29.9,33.4 L29.8,33.5 M29.8,33.5 L29.8,33.5 M29.8,33.5 L29.9,33.6 M29.9,33.6 L29.9,33.7 M29.9,33.7 L30.0,33.8 M30.0,33.8 L30.0,33.9 M30.0,33.9 L30.1,34.0 M30.1,34.0 L30.1,34.1 M30.1,34.1 L30.2,34.2 M30.2,34.2 L30.2,34.2 M30.2,34.2 L30.2,34.3 M30.2,34.3 L30.2,34.3 M30.2,34.3 L30.2,34.4 M30.2,34.4 L30.3,34.5 M30.3,34.5 L30.3,34.5 M30.3,34.5 L30.4,34.5 M30.4,34.5 L30.4,34.6 M30.4,34.6 L30.5,34.7 M30.5,34.7 L30.6,34.8 M30.6,34.8 L30.6,34.9 M30.6,34.9 L30.7,35.0 M30.7,35.0 L30.7,35.0 M30.7,35.0 L30.8,35.1 M30.8,35.1 L30.8,35.2 M30.8,35.2 L30.9,35.3 M30.9,35.3 L31.0,35.3 M31.0,35.3 L31.0,35.4 M31.0,35.4 L31.0,35.5 M31.0,35.5 L31.1,35.6 M31.1,35.6 L31.1,35.6 M31.1,35.6 L31.1,35.7 M31.1,35.7 L31.1,35.7 M31.1,35.7 L31.2,35.8 M31.2,35.8 L31.2,35.8 M31.2,35.8 L31.2,35.8 M31.2,35.8 L31.1,35.9 M31.1,35.9 L31.1,36.0 M31.1,36.0 L31.2,36.2 M31.2,36.2 L31.2,36.2 M31.2,36.2 L31.3,36.2 M31.3,36.2 L31.3,36.2 M31.3,36.2 L31.4,36.2 M31.4,36.2 L31.5,36.1 M31.5,36.1 L31.5,36.1 M31.5,36.1 L31.6,36.1 M31.6,36.1 L31.6,36.1 M31.6,36.1 L31.6,36.1 M31.6,36.1 L31.7,36.1 M31.7,36.1 L31.7,36.1 M31.7,36.1 L31.8,36.2 M31.8,36.2 L31.9,36.2 M31.9,36.2 L32.0,36.2 M32.0,36.2 L32.0,36.2 M32.0,36.2 L32.1,36.2 M32.1,36.2 L32.1,36.1 M32.1,36.1 L32.1,36.1 M32.1,36.1 L32.1,36.1 M32.1,36.1 L32.2,36.0 M32.2,36.0 L32.3,36.0 M32.3,36.0 L32.4,36.0 M32.4,36.0 L32.5,36.0 M32.5,36.0 L32.6,36.0 M32.6,36.0 L32.7,36.0 M32.7,36.0 L32.8,35.9 M32.8,35.9 L32.9,35.8 M32.9,35.8 L33.1,35.7 M33.1,35.7 L33.3,35.5 M33.3,35.5 L33.4,35.5 M33.4,35.5 L33.4,35.4 M33.4,35.4 L33.5,35.3 M33.5,35.3 L33.5,35.2 M33.5,35.2 L33.5,35.1 M33.5,35.1 L33.5,35.1 M33.5,35.1 L33.5,35.0 M33.5,35.0 L33.5,35.0 M33.5,35.0 L33.5,34.9 M33.5,34.9 L33.5,34.9 M33.5,34.9 L33.6,34.8 M33.6,34.8 L33.6,34.7 M33.6,34.7 L33.6,34.6 M33.6,34.6 L33.6,34.6 M33.6,34.6 L33.6,34.5 M33.6,34.5 L33.6,34.5 M33.6,34.5 L33.6,34.3 M33.6,34.3 L33.5,34.3 M33.5,34.3 L33.5,34.2 M33.5,34.2 L33.5,34.1 M33.5,34.1 L33.4,34.1 M33.4,34.1 L33.4,34.1 M33.4,34.1 L33.3,34.1 M33.3,34.1 L33.3,34.0 M33.3,34.0 L33.3,34.0 M33.3,34.0 L33.2,33.9 M33.2,33.9 L33.2,33.8 M33.2,33.8 L33.2,33.8 M33.2,33.8 L33.2,33.7 M33.2,33.7 L33.2,33.6 M33.2,33.6 L33.2,33.6 M33.2,33.6 L33.2,33.5 M33.2,33.5 L33.3,33.4 M33.3,33.4 L33.3,33.4 M33.3,33.4 L33.3,33.3 M33.3,33.3 L33.3,33.3 M33.3,33.3 L33.2,33.3 M33.2,33.3 L33.2,33.3 M33.2,33.3 L33.2,33.2 M33.2,33.2 L33.2,33.1 M33.2,33.1 L33.2,33.1 M33.2,33.1 L33.3,33.0 M33.3,33.0 L33.3,33.0 M33.3,33.0 L33.3,33.0 M33.3,33.0 L33.3,32.9 M33.3,32.9 L33.3,32.9 M33.3,32.9 L33.3,32.8 M33.3,32.8 L33.3,32.8 M33.3,32.8 L33.3,32.8 M33.3,32.8 L33.3,32.8 M33.3,32.8 L33.3,32.7 M33.3,32.7 L33.4,32.6 M33.4,32.6 L33.4,32.6 M33.4,32.6 L33.5,32.5 M33.5,32.5 L33.5,32.4 M33.5,32.4 L33.5,32.4 M33.5,32.4 L33.5,32.4 M33.5,32.4 L33.5,32.3 M33.5,32.3 L33.5,32.3 M33.5,32.3 L33.6,32.2 M33.6,32.2 L33.6,32.2 M33.6,32.2 L33.6,32.1 M33.6,32.1 L33.6,32.0 M33.6,32.0 L33.6,32.0 M33.6,32.0 L33.6,32.0 M33.6,32.0 L33.6,31.9 M33.6,31.9 L33.6,31.9 M33.6,31.9 L33.6,31.9 M33.6,31.9 L33.6,31.8 M33.6,31.8 L33.5,31.8 M33.5,31.8 L33.5,31.8 M33.5,31.8 L33.5,31.7 M33.5,31.7 L33.5,31.7 M33.5,31.7 L33.5,31.7 M33.5,31.7 L33.5,31.6 M33.5,31.6 L33.5,31.6 M33.5,31.6 L33.5,31.5 M33.5,31.5 L33.5,31.5 M33.5,31.5 L33.5,31.4 M33.5,31.4 L33.6,31.3 M33.6,31.3 L33.6,31.3 M33.6,31.3 L33.6,31.3 M33.6,31.3 L33.6,31.2 M33.6,31.2 L33.7,31.1 M33.7,31.1 L33.7,31.1 M33.7,31.1 L33.8,31.0 M33.8,31.0 L33.8,31.0 M33.8,31.0 L33.9,31.0 M33.9,31.0 L33.9,30.9 M33.9,30.9 L33.9,30.9 M33.9,30.9 L34.0,30.8 M34.0,30.8 L34.0,30.8 M34.0,30.8 L34.0,30.7 M34.0,30.7 L34.0,30.7 M34.0,30.7 L34.1,30.6 M34.1,30.6 L34.1,30.6 M34.1,30.6 L34.1,30.5 M34.1,30.5 L34.1,30.5 M34.1,30.5 L34.1,30.4 M34.1,30.4 L34.1,30.4 M34.1,30.4 L34.1,30.4 M34.1,30.4 L34.1,30.3 M34.1,30.3 L34.1,30.3 M34.1,30.3 L34.2,30.3 M34.2,30.3 L34.2,30.3 M34.2,30.3 L34.3,30.3 M34.3,30.3 L34.3,30.2 M34.3,30.2 L34.4,30.2 M34.4,30.2 L34.4,30.2 M34.4,30.2 L34.5,30.2 M34.5,30.2 L34.6,30.2 M34.6,30.2 L34.7,30.2 M34.7,30.2 L34.7,30.2 M34.7,30.2 L34.8,30.2 M34.8,30.2 L34.8,30.2 M34.8,30.2 L34.9,30.2 M34.9,30.2 L34.9,30.2 M34.9,30.2 L34.9,30.2 M34.9,30.2 L35.0,30.2 M35.0,30.2 L35.1,30.2 M35.1,30.2 L35.2,30.2 M35.2,30.2 L35.2,30.2 M35.2,30.2 L35.3,30.2 M35.3,30.2 L35.4,30.2 M35.4,30.2 L35.4,30.2 M35.4,30.2 L35.5,30.1 M35.5,30.1 L35.6,30.1 M35.6,30.1 L35.6,30.1 M35.6,30.1 L35.7,30.1 M35.7,30.1 L35.8,30.1 M35.8,30.1 L35.9,30.1 M35.9,30.1 L36.0,30.1 M36.0,30.1 L36.1,30.1 M36.1,30.1 L36.2,30.1 M36.2,30.1 L36.3,30.0 M36.3,30.0 L36.4,30.0 M36.4,30.0 L36.5,30.0 M36.5,30.0 L36.6,29.9 M36.6,29.9 L36.8,29.9 M36.8,29.9 L36.8,29.9 M36.8,29.9 L37.0,29.9 M37.0,29.9 L37.1,29.9 M37.1,29.9 L37.2,29.8 M37.2,29.8 L37.4,29.8 M37.4,29.8 L37.6,29.7 M37.6,29.7 L37.6,29.7 M37.6,29.7 L37.8,29.7 M37.8,29.7 L37.9,29.7 M37.9,29.7 L38.1,29.6 M38.1,29.6 L38.3,29.6 M38.3,29.6 L38.3,29.6 M38.3,29.6 L38.4,29.6 M38.4,29.6 L38.5,29.5 M38.5,29.5 L38.7,29.5 M38.7,29.5 L38.9,29.4 M38.9,29.4 L38.9,29.4 M38.9,29.4 L39.0,29.3 M39.0,29.3 L39.1,29.2 M39.1,29.2 L39.2,29.1 M39.2,29.1 L39.3,29.1 M39.3,29.1 L39.4,29.0 M39.4,29.0 L39.5,29.0 M39.5,29.0 L39.6,28.9 M39.6,28.9 L39.7,28.8 M39.7,28.8 L39.7,28.8 M39.7,28.8 L39.8,28.7 M39.8,28.7 L39.8,28.7 M39.8,28.7 L39.9,28.7 M39.9,28.7 L40.0,28.6 M40.0,28.6 L40.0,28.5 M40.0,28.5 L40.1,28.4 M40.1,28.4 L40.1,28.3 M40.1,28.3 L40.0,28.2 M40.0,28.2 L40.0,28.0 M40.0,28.0 L40.0,27.9 M40.0,27.9 L40.0,27.8 M40.0,27.8 L40.0,27.7 M40.0,27.7 L40.1,27.6 M40.1,27.6 L40.2,27.5 M40.2,27.5 L40.4,27.5 M40.4,27.5 L40.5,27.5 M40.5,27.5 L40.6,27.5 M40.6,27.5 L40.6,27.5 M40.6,27.5 L40.7,27.5 M40.7,27.5 L40.8,27.6 M40.8,27.6 L40.9,27.7 M40.9,27.7 L40.9,27.8 M40.9,27.8 L40.9,27.8 M40.9,27.8 L41.1,27.9 M41.1,27.9 L41.2,27.9 M41.2,27.9 L41.3,28.0 M41.3,28.0 L41.4,28.0 M41.4,28.0 L41.4,28.0 M41.4,28.0 L41.6,28.1 M41.6,28.1 L41.7,28.1 M41.7,28.1 L41.9,28.2 M41.9,28.2 L42.1,28.2" fill="none" stroke="var(--panel)" stroke-width="0.9" opacity=".9"/><path d="M150.3,167.1 L154.3,169.0 L156.4,171.8 L158.4,173.2 L164.1,181.1 L164.5,182.1 L164.5,183.5 L165.4,184.9 L167.6,186.2 L168.8,187.6 L170.8,188.4 L173.3,188.5 L175.1,190.2 L175.2,193.0 L175.9,194.4 L178.0,194.2 L178.9,195.1 L180.9,195.2 L181.6,195.9 L183.1,196.1 L183.9,197.0 L184.4,199.2 L186.4,199.8 L187.5,199.6 L189.5,200.7 L189.9,202.2 L189.4,202.8 L189.2,205.0 L191.3,206.8 L191.8,207.7 L191.8,209.3 L191.2,211.2 L191.5,212.0 L191.4,213.5 L192.1,215.6 L193.0,216.4 L192.3,217.3 L192.3,217.8 L191.6,217.9 L190.4,219.2 L190.1,220.7 L190.3,222.1 L189.8,222.7 L189.4,225.0 L188.9,225.7 L187.8,226.6 L186.4,226.3 L184.7,227.8 L182.4,227.7 L180.1,225.9 L178.9,224.0 L176.5,224.1 L175.0,223.1 L173.8,221.3 L174.1,220.1 L171.6,220.0 L171.0,220.5 L168.7,220.2 L167.3,219.0 L166.8,217.9 L167.1,216.6 L167.6,216.3 L167.7,214.6 L168.6,212.5 L167.5,212.0 L166.1,212.1 L165.2,211.3 L164.2,211.8 L161.7,208.7 L161.4,207.0 L161.8,206.2 L159.8,205.1 L159.4,203.4 L158.5,202.7 L156.5,202.6 L154.5,198.3 L155.0,197.9 L154.7,194.8 L152.4,193.2 L151.2,191.2 L150.6,188.2 L149.9,187.3 L148.2,186.3 L148.4,183.8 L147.9,182.0 L146.8,180.9 L144.6,180.8 L143.1,179.4 L142.5,179.5 L141.9,178.9 L141.7,177.7 L140.1,176.8 L139.6,172.8 L138.3,171.8 L137.2,169.3 L137.4,168.5 L136.4,167.6 L136.2,166.7 L135.2,165.3 L136.1,163.3 L137.1,162.8 L137.1,162.1 L139.1,161.1 L140.8,158.7 L145.4,164.0 L150.3,167.1Z" fill="none" stroke="var(--ink)" stroke-width="0.8" stroke-opacity=".55"/><path d="M104.9,88.3 L105.9,88.3 L107.4,89.9 L110.7,95.2 L114.2,102.8 L115.2,103.8 L115.5,105.3 L117.9,108.8 L119.2,112.2 L121.3,115.0 L122.1,117.1 L123.7,119.4 L123.9,120.4 L123.5,121.4 L124.5,122.8 L125.5,128.0 L127.5,132.6 L130.0,135.3 L131.3,137.2 L132.2,140.9 L134.8,145.5 L135.9,148.9 L135.9,151.6 L137.0,153.2 L137.0,154.5 L137.9,155.8 L139.6,156.7 L140.7,157.9 L140.8,158.9 L139.1,161.1 L137.2,162.0 L137.1,162.8 L136.1,163.3 L135.2,165.3 L135.6,166.1 L134.8,166.5 L133.1,166.0 L133.1,165.3 L132.1,164.2 L132.1,163.2 L131.5,161.3 L130.8,160.6 L130.1,160.6 L130.3,160.0 L129.8,159.8 L129.9,158.9 L129.3,157.7 L128.0,156.6 L127.4,155.2 L127.4,154.2 L126.7,153.7 L127.5,152.5 L127.6,150.8 L126.1,149.1 L126.3,148.3 L126.1,147.2 L125.1,146.3 L125.1,145.7 L123.3,143.3 L121.5,138.8 L119.9,137.3 L118.8,136.9 L116.0,133.4 L113.0,132.7 L111.2,131.6 L109.6,131.8 L108.7,130.7 L107.1,130.5 L106.3,129.6 L101.8,129.8 L98.4,128.0 L97.6,126.4 L96.8,125.8 L98.0,125.3 L97.9,124.4 L97.1,123.9 L97.0,123.3 L96.2,123.4 L94.3,122.8 L93.9,121.2 L91.9,118.8 L91.5,117.1 L90.9,116.4 L92.2,116.9 L97.0,117.3 L98.4,118.3 L100.2,118.4 L100.7,119.5 L102.9,119.7 L104.6,120.5 L105.9,119.8 L106.2,118.5 L107.5,117.2 L107.3,116.6 L107.8,115.5 L107.3,114.2 L107.9,112.6 L107.5,112.1 L107.6,111.3 L107.1,111.1 L107.0,110.5 L106.0,110.3 L105.7,109.3 L103.5,108.3 L102.5,107.1 L101.9,105.3 L102.1,103.8 L101.1,102.0 L101.1,100.9 L102.2,101.2 L102.6,100.9 L102.6,99.9 L101.4,97.2 L101.3,95.2 L101.9,94.2 L101.4,89.6 L102.5,88.2 L104.0,87.7 L104.9,88.3Z" fill="none" stroke="var(--ink)" stroke-width="0.8" stroke-opacity=".55"/><path d="M43.9,12.0 L45.4,13.4 L47.4,13.0 L49.1,13.7 L51.3,16.5 L53.2,17.2 L54.5,18.2 L55.0,18.1 L55.3,19.8 L61.1,24.0 L61.2,24.7 L60.6,25.6 L61.1,26.8 L61.2,28.7 L62.1,30.6 L61.2,31.5 L60.5,33.5 L59.6,34.7 L59.6,36.1 L60.4,37.2 L60.6,40.7 L62.1,42.0 L63.7,44.3 L64.5,47.0 L67.5,49.1 L67.5,50.5 L68.5,52.1 L67.1,55.1 L67.7,57.0 L68.4,58.2 L69.7,57.9 L69.8,59.2 L70.4,59.4 L70.8,60.5 L71.5,61.1 L73.1,61.3 L72.6,62.0 L72.7,63.2 L73.1,63.7 L74.4,63.9 L74.9,64.8 L75.9,65.5 L76.6,67.8 L76.5,68.7 L77.4,70.8 L78.8,71.9 L79.2,72.8 L79.1,74.4 L79.9,75.0 L80.5,76.9 L82.0,77.8 L83.4,79.5 L83.6,80.4 L84.0,80.4 L86.1,83.2 L86.3,84.3 L87.7,84.4 L88.0,85.1 L89.1,85.9 L90.1,87.3 L91.0,87.3 L93.2,88.5 L93.3,89.4 L94.5,90.2 L94.6,91.1 L95.8,92.6 L95.9,93.4 L97.2,94.4 L98.1,96.7 L99.5,98.9 L99.5,99.4 L101.1,100.9 L101.1,102.0 L102.1,103.8 L101.9,105.3 L102.5,107.1 L103.5,108.3 L105.7,109.3 L106.0,110.3 L107.2,110.6 L107.0,110.9 L107.6,111.3 L107.5,112.1 L107.9,112.5 L107.3,114.2 L107.7,115.6 L107.3,116.6 L107.5,117.2 L106.2,118.5 L105.9,119.8 L104.9,120.4 L103.9,120.4 L102.9,119.7 L100.7,119.5 L100.2,118.4 L98.4,118.3 L97.0,117.3 L92.2,116.9 L90.8,116.2 L90.2,115.1 L89.0,115.0 L88.3,115.4 L86.1,113.9 L85.6,114.6 L84.9,113.5 L84.3,113.3 L82.9,111.1 L83.3,110.8 L83.7,108.6 L84.5,108.6 L84.7,106.7 L84.1,106.0 L83.1,105.9 L83.2,104.2 L81.2,102.3 L77.9,102.7 L74.4,101.8 L73.1,102.5 L71.2,101.7 L70.8,101.1 L70.8,100.4 L70.0,99.8 L69.7,98.8 L68.9,98.5 L66.9,99.1 L66.2,98.6 L65.7,98.1 L66.0,97.3 L65.7,96.3 L64.6,95.5 L62.1,96.8 L61.8,96.3 L59.0,95.1 L56.8,95.1 L56.9,94.4 L55.4,93.7 L55.5,93.1 L56.4,92.1 L57.2,92.0 L57.3,91.2 L58.3,90.8 L58.7,89.0 L57.9,87.2 L55.9,85.2 L55.9,84.3 L56.5,83.8 L55.8,82.7 L55.8,80.9 L54.2,80.1 L51.7,80.8 L51.1,81.4 L49.7,79.9 L49.5,79.2 L48.5,79.5 L46.7,78.7 L46.1,78.1 L46.5,77.6 L45.8,76.7 L45.8,75.3 L44.9,75.3 L42.7,72.5 L41.9,72.1 L42.0,70.2 L45.1,68.6 L44.5,67.2 L42.6,65.8 L43.3,64.0 L42.8,63.3 L42.6,62.3 L39.3,60.5 L39.2,59.3 L37.0,55.2 L37.1,54.4 L36.2,53.9 L35.0,54.1 L34.5,53.5 L34.8,52.4 L32.5,51.5 L32.3,51.1 L32.9,50.4 L32.2,48.9 L30.9,47.9 L31.0,47.1 L30.2,46.7 L30.6,45.8 L28.7,45.1 L29.3,43.7 L26.1,39.1 L26.3,38.2 L27.4,38.1 L26.9,37.1 L25.7,36.0 L25.3,34.9 L24.5,34.6 L23.6,34.6 L23.3,35.3 L20.4,35.8 L20.1,35.0 L18.1,33.3 L15.1,31.6 L12.0,31.1 L13.6,23.2 L18.1,25.3 L19.3,26.1 L19.7,27.2 L21.9,27.8 L22.6,27.6 L23.0,26.7 L22.9,25.4 L24.2,23.2 L24.0,21.7 L25.0,20.5 L25.7,18.9 L25.4,17.7 L24.7,17.2 L23.5,15.1 L24.3,14.1 L25.8,13.1 L26.8,13.8 L26.3,14.4 L27.6,15.9 L30.4,15.4 L31.5,15.5 L32.4,16.1 L33.9,15.5 L34.3,15.7 L35.1,16.4 L34.5,17.9 L36.4,19.0 L36.7,20.6 L37.7,22.5 L39.3,23.1 L40.5,20.7 L39.0,17.8 L39.0,15.8 L39.5,15.6 L39.7,14.3 L40.2,13.9 L42.5,13.4 L43.1,12.0 L43.9,12.0Z" fill="none" stroke="var(--ink)" stroke-width="0.8" stroke-opacity=".55"/><path d="M150.3,167.1 L154.3,169.0 L156.4,171.8 L158.4,173.2 L164.1,181.1 L164.5,182.1 L164.5,183.5 L165.4,184.9 L167.6,186.2 L168.8,187.6 L170.8,188.4 L173.3,188.5 L175.1,190.2 L175.2,193.0 L175.9,194.4 L178.0,194.2 L178.9,195.1 L180.9,195.2 L181.6,195.9 L183.1,196.1 L183.9,197.0 L184.4,199.2 L186.4,199.8 L187.5,199.6 L189.5,200.7 L189.9,202.2 L189.4,202.8 L189.2,205.0 L191.3,206.8 L191.8,207.7 L191.8,209.3 L191.2,211.2 L191.5,212.0 L191.4,213.5 L192.1,215.6 L193.0,216.4 L192.3,217.3 L192.3,217.8 L191.6,217.9 L190.4,219.2 L190.1,220.7 L190.3,222.1 L189.8,222.7 L189.4,225.0 L188.9,225.7 L187.8,226.6 L186.4,226.3 L184.7,227.8 L182.4,227.7 L180.1,225.9 L178.9,224.0 L176.5,224.1 L175.0,223.1 L173.8,221.3 L174.1,220.1 L171.6,220.0 L171.0,220.5 L168.7,220.2 L167.3,219.0 L166.8,217.9 L167.1,216.6 L167.6,216.3 L167.7,214.6 L168.6,212.5 L167.5,212.0 L166.1,212.1 L165.2,211.3 L164.2,211.8 L161.7,208.7 L161.4,207.0 L161.8,206.2 L159.8,205.1 L159.4,203.4 L158.5,202.7 L156.5,202.6 L154.5,198.3 L155.0,197.9 L154.7,194.8 L152.4,193.2 L151.2,191.2 L150.6,188.2 L149.9,187.3 L148.2,186.3 L148.4,183.8 L147.8,181.8 L146.8,180.9 L144.6,180.8 L143.1,179.4 L142.1,179.1 L141.7,177.7 L139.9,176.5 L139.6,172.8 L138.3,171.8 L137.2,169.3 L137.4,168.5 L136.4,167.6 L136.1,166.6 L135.6,166.1 L134.8,166.5 L133.4,166.2 L133.1,165.2 L132.1,164.3 L132.1,163.2 L131.5,161.3 L130.8,160.6 L130.1,160.6 L129.9,158.9 L129.3,157.7 L128.0,156.6 L127.4,155.2 L127.4,154.2 L126.7,153.7 L127.5,152.5 L127.6,150.8 L126.1,149.1 L126.3,148.3 L126.1,147.2 L125.1,146.3 L125.1,145.7 L123.3,143.3 L123.0,142.1 L121.9,140.4 L121.9,139.3 L120.4,137.7 L118.8,136.9 L116.0,133.4 L113.0,132.7 L111.2,131.6 L109.6,131.8 L108.7,130.7 L107.1,130.5 L106.3,129.6 L101.8,129.8 L98.2,127.9 L97.7,126.5 L96.8,125.8 L98.0,125.3 L97.9,124.4 L97.1,123.9 L97.0,123.3 L96.2,123.4 L94.3,122.8 L93.9,121.2 L91.9,118.8 L91.5,117.1 L90.3,115.1 L89.0,115.0 L88.3,115.4 L86.1,113.9 L85.6,114.6 L83.4,112.1 L82.9,111.1 L83.3,110.8 L83.7,108.6 L84.5,108.6 L84.7,106.7 L84.1,106.0 L83.1,105.9 L83.2,104.2 L81.8,102.8 L81.1,102.3 L78.1,102.7 L74.4,101.8 L73.1,102.5 L71.2,101.7 L70.8,101.1 L70.8,100.4 L70.0,99.8 L69.7,98.8 L68.9,98.5 L66.9,99.1 L66.2,98.6 L65.7,98.1 L66.0,97.3 L65.7,96.3 L64.6,95.5 L62.1,96.8 L61.8,96.3 L59.0,95.1 L57.0,95.2 L56.7,94.9 L56.9,94.4 L55.6,93.8 L55.6,93.0 L56.4,92.1 L57.2,92.0 L57.3,91.2 L58.4,90.7 L58.7,89.0 L57.9,87.2 L55.9,85.2 L55.9,84.3 L56.5,83.8 L55.8,82.7 L55.8,80.9 L54.2,80.1 L51.7,80.8 L51.1,81.4 L49.7,79.9 L49.5,79.2 L48.5,79.5 L46.1,78.1 L46.5,77.6 L45.8,76.7 L45.8,75.3 L44.9,75.3 L41.7,71.6 L42.2,70.0 L45.1,68.6 L44.5,67.2 L42.6,65.8 L43.4,64.1 L42.6,62.4 L39.3,60.5 L39.2,59.3 L37.0,55.2 L37.1,54.4 L36.2,53.9 L35.0,54.1 L34.5,53.5 L34.8,52.4 L32.5,51.5 L32.3,51.1 L32.9,50.4 L32.2,48.9 L30.9,47.9 L31.0,47.1 L30.2,46.7 L30.6,45.8 L28.7,45.1 L29.3,43.7 L26.1,39.1 L26.3,38.2 L27.4,38.1 L26.8,36.9 L25.7,36.0 L25.3,34.9 L23.9,34.5 L23.3,35.3 L20.4,35.8 L20.1,35.0 L18.1,33.3 L15.1,31.6 L13.6,31.2 L12.1,31.3 L13.6,23.2 L18.1,25.3 L19.3,26.1 L19.7,27.2 L22.4,27.8 L23.0,26.7 L22.9,25.4 L24.1,23.6 L24.0,21.7 L25.0,20.5 L25.7,18.9 L25.4,17.7 L24.7,17.2 L23.5,15.1 L24.3,14.1 L26.0,13.1 L26.8,13.8 L26.3,14.3 L26.5,14.9 L27.6,15.9 L30.4,15.4 L31.5,15.5 L32.4,16.1 L33.9,15.5 L34.3,15.7 L35.1,16.4 L34.5,17.9 L36.4,19.0 L36.7,20.6 L37.7,22.5 L39.3,23.1 L40.5,20.7 L39.0,17.8 L39.0,15.8 L39.5,15.6 L39.7,14.3 L40.9,13.5 L42.5,13.4 L43.0,12.1 L43.7,12.0 L45.4,13.4 L47.4,13.0 L49.1,13.7 L51.3,16.5 L53.2,17.2 L54.5,18.2 L55.0,18.1 L55.3,19.8 L58.0,21.4 L60.0,23.5 L60.9,23.7 L61.2,24.4 L60.6,25.6 L61.1,26.8 L61.2,28.6 L62.1,30.5 L61.2,31.5 L60.5,33.5 L59.6,34.7 L59.6,36.1 L60.4,37.2 L60.6,40.7 L62.1,42.0 L63.7,44.3 L64.5,47.0 L67.5,49.1 L67.5,50.5 L68.5,52.1 L67.1,55.1 L68.3,58.1 L68.9,58.3 L69.7,57.9 L69.8,59.2 L70.4,59.4 L70.8,60.5 L71.5,61.1 L73.0,61.1 L72.6,62.0 L72.7,63.2 L73.1,63.7 L74.4,63.9 L74.9,64.8 L75.9,65.5 L76.6,67.8 L76.5,68.7 L77.4,70.8 L78.8,71.9 L79.2,72.8 L79.1,74.4 L79.9,75.0 L80.5,76.9 L82.0,77.8 L83.4,79.5 L83.6,80.4 L84.0,80.4 L86.1,83.2 L86.3,84.3 L87.7,84.4 L88.0,85.1 L89.1,85.9 L90.1,87.3 L91.0,87.3 L93.2,88.5 L93.3,89.4 L94.5,90.2 L94.6,91.1 L95.8,92.6 L95.9,93.4 L97.2,94.4 L98.1,96.7 L99.5,98.9 L99.5,99.4 L101.0,100.8 L102.2,101.2 L102.6,100.9 L102.6,99.9 L101.4,97.2 L101.3,95.2 L101.9,94.2 L101.4,89.6 L102.4,88.2 L104.0,87.7 L105.9,88.3 L107.4,89.9 L111.4,96.5 L114.2,102.8 L115.2,103.9 L115.5,105.3 L117.9,108.8 L119.2,112.2 L121.3,115.0 L122.1,117.1 L123.7,119.5 L123.9,120.4 L123.5,121.4 L124.5,122.8 L125.5,128.0 L127.5,132.6 L130.0,135.3 L131.3,137.2 L132.2,140.9 L134.8,145.5 L135.9,148.9 L135.9,151.6 L137.0,153.2 L137.0,154.5 L137.9,155.8 L140.4,157.5 L140.8,158.7 L145.4,164.0 L148.2,166.1 L150.3,167.1Z" fill="none" stroke="var(--ink)" stroke-width="1.6"/><path d="M16.2,30.6 L15.8,30.6 M15.8,30.6 L13.9,30.9 L13.4,30.3 L13.6,29.0 L13.2,27.3 L13.9,24.7 L13.8,23.5 M13.8,23.5 L13.6,23.3 M19.2,32.8 L16.9,32.6 L16.6,32.0 L16.5,31.1 L16.2,30.6 M19.7,32.6 L19.2,32.8 M21.6,33.2 L21.7,32.6 L21.1,32.4 L19.7,32.6 M28.0,34.7 L27.3,34.4 L26.3,34.8 L24.9,33.1 L23.8,33.5 L22.7,34.4 L22.1,34.5 L21.8,34.0 L21.6,33.2 M28.2,35.0 L28.0,34.7 M28.6,35.5 L28.2,35.0 M29.4,35.2 L28.6,35.5 M30.0,35.5 L29.4,35.2 M30.6,35.9 L30.0,35.5 M31.1,36.2 L30.6,35.9 M32.0,36.7 L31.1,36.2 M32.6,37.6 L32.0,36.7 M36.6,42.3 L36.3,42.2 M36.3,42.2 L35.8,41.6 L36.0,40.8 L35.9,40.0 L34.9,39.6 L33.4,37.8 L32.6,37.6 M38.3,42.5 L37.3,42.1 L36.6,42.3 M38.1,44.0 L38.0,42.9 L38.3,42.5 M38.2,44.3 L38.1,44.0 M38.2,48.3 L38.3,47.5 L38.9,46.6 L38.6,45.6 M38.6,45.6 L38.1,44.8 L38.2,44.3 M38.7,49.3 L38.2,48.3 M40.7,52.0 L39.9,49.2 L38.7,49.3 M41.7,53.2 L41.3,53.2 L40.7,52.0 M41.9,53.0 L41.7,53.2 M47.3,51.9 L46.4,51.6 L46.3,52.0 L45.2,52.3 L44.3,51.8 L43.0,51.9 L42.3,52.7 M45.9,57.7 L45.1,57.3 L44.0,56.0 L43.1,55.9 L43.0,55.5 L44.3,55.5 L44.5,54.7 L46.5,53.5 L47.3,51.9 M50.8,57.2 L49.8,56.2 L49.2,56.7 L49.2,57.2 L48.2,57.0 L46.9,58.0 L45.9,57.7 M51.8,58.5 L51.3,57.8 L51.3,57.4 L50.8,57.2 M53.8,60.3 L53.2,59.0 L51.8,58.5 M52.5,64.7 L53.1,64.0 L54.5,64.4 L54.6,63.8 L55.0,63.5 L55.1,62.6 L54.9,61.5 L55.2,61.2 L54.7,60.6 L54.0,60.6 L53.8,60.3 M53.1,65.2 L52.5,64.7 M56.4,68.5 L56.0,67.3 L55.4,66.9 L53.6,67.5 L53.5,66.6 L54.3,66.4 L54.4,66.1 L53.1,65.2 M56.5,68.9 L56.4,68.5 M58.7,70.8 L57.7,70.8 L57.9,70.3 L57.4,69.8 L56.9,69.7 L56.7,69.0 L56.5,68.9 M59.5,72.1 L59.5,71.6 L58.7,70.8 M58.9,73.8 L59.1,73.2 L58.9,72.6 L59.5,72.1 M58.2,74.1 L58.9,73.8 M58.0,74.1 L58.2,74.1 M59.7,76.9 L59.0,75.8 L58.0,75.9 L57.3,75.5 L57.2,74.9 M61.4,81.2 L60.8,80.6 L60.6,79.6 L59.9,78.8 L60.1,77.2 L59.7,76.9 M60.8,83.5 L61.4,82.1 L61.4,81.2 M61.6,83.7 L60.8,83.5 M62.0,84.3 L61.6,83.7 M62.1,84.8 L62.0,84.3 M62.8,85.2 L62.8,85.0 L62.2,85.0 L62.1,84.8 M62.7,85.7 L62.8,85.2 M62.8,88.5 L62.3,87.2 L62.8,86.5 L62.7,85.7 M63.5,89.6 L62.9,89.2 L63.0,88.6 L62.8,88.5 M65.0,91.6 L64.6,90.9 L63.6,90.1 L63.5,89.6 M65.4,91.8 L65.0,91.6 M68.6,94.5 L68.3,94.0 L67.5,93.5 L67.0,93.7 L66.5,93.4 L66.0,92.6 L65.6,92.5 L65.4,91.8 M69.3,96.3 L68.8,95.8 L69.4,95.2 L68.5,94.8 L68.6,94.5 M71.6,97.0 L71.1,96.7 L70.3,96.8 L69.8,96.2 L69.3,96.3 M72.1,96.4 L71.6,97.0 M73.1,96.5 L72.1,96.4 M75.8,97.3 L74.5,96.3 L73.8,96.7 L73.1,96.5 M76.7,96.6 L75.8,97.3 M80.7,94.8 L80.4,95.2 L79.9,95.4 L78.5,95.2 L78.3,95.7 L76.7,96.6 M81.2,95.0 L80.7,94.8 M81.9,95.1 L81.2,95.0 M83.2,94.8 L81.9,95.1 M84.4,96.1 L83.7,95.8 L83.6,95.0 L83.2,94.8 M87.3,98.3 L87.1,97.5 L85.9,97.3 L84.4,96.1 M87.2,98.7 L87.3,98.3 M89.2,102.1 L88.2,99.9 L87.7,99.9 L87.2,98.7 M89.5,103.3 L89.2,102.1 M91.5,105.7 L91.4,105.2 L90.5,104.7 L90.4,104.2 L89.5,103.9 L89.5,103.3 M93.7,105.7 L91.5,105.7 M95.6,106.7 L94.2,106.3 L93.7,105.7 M96.5,108.3 L95.6,106.7 M96.3,108.9 L96.5,108.3 M96.5,110.8 L96.6,109.3 L96.3,108.9 M97.3,111.9 L96.5,110.8 M97.4,112.0 L97.3,111.9 M99.6,112.5 L99.4,112.2 L98.5,112.4 L97.4,112.0 M100.6,115.2 L100.7,114.7 L99.8,113.6 L99.6,112.5 M100.7,115.3 L100.6,115.2 M102.5,115.7 L102.2,115.4 L100.7,115.3 M103.4,118.1 L102.5,115.7 M104.5,120.5 L104.2,119.4 L103.4,118.3 L103.4,118.1 M102.1,122.4 L103.5,120.9 L104.5,120.5 M102.3,123.4 L102.3,122.6 L102.1,122.4 M104.6,125.4 L103.9,125.1 L103.2,124.4 L103.0,123.8 L102.3,123.4 M107.3,126.9 L105.4,125.5 L104.6,125.4 M112.1,130.1 L110.9,130.6 L110.4,130.4 L108.6,128.9 L107.3,126.9 M114.4,130.5 L112.1,130.1 M114.8,130.4 L114.4,130.5 M120.0,134.1 L119.4,133.5 L118.7,131.1 L117.9,131.0 M120.6,135.1 L120.0,134.1 M121.8,136.8 L120.7,135.6 L120.6,135.1 M123.7,140.5 L122.9,140.1 L122.8,139.1 L122.0,138.4 L121.8,136.8 M125.4,142.6 L123.7,140.5 M127.9,145.7 L126.7,144.3 L126.2,143.2 L125.4,142.6 M128.3,146.5 L128.3,146.2 L127.9,145.7 M129.7,148.5 L128.3,147.4 L128.3,146.5 M130.7,150.7 L129.6,149.4 L129.7,148.5 M132.1,154.2 L131.7,153.9 L132.0,153.1 L131.9,152.9 L130.4,152.2 L130.9,151.2 L130.7,150.7 M133.3,154.6 L133.0,153.9 L132.1,154.2 M134.3,156.7 L133.3,155.8 L133.5,155.1 L133.3,154.6 M136.3,159.2 L135.4,158.3 L135.2,157.5 L134.3,156.7 M137.1,160.6 L136.2,159.9 L136.3,159.2 M138.2,161.7 L137.1,160.6 M152.5,177.4 L152.5,177.4 M152.6,177.8 L152.5,177.4 M153.4,177.7 L153.2,177.8 M153.2,177.8 L152.6,177.8 M155.3,180.7 L154.6,179.1 L153.9,178.7 L153.7,177.9 L153.4,177.7 M155.8,182.2 L155.3,180.7 M156.2,182.7 L155.8,182.2 M156.2,183.1 L156.2,182.7 M156.8,183.7 L156.2,183.5 L156.2,183.1 M156.7,185.1 L156.4,184.4 L156.9,184.2 L156.8,183.7 M158.0,188.2 L158.1,187.5 L158.5,187.2 L158.4,186.8 L157.6,185.6 L156.7,185.1 M158.0,188.7 L158.0,188.2 M158.1,189.9 L157.9,189.2 L158.0,188.7 M158.8,190.6 L158.1,189.9 M160.7,193.5 L159.7,192.6 L159.6,191.3 L158.8,190.6 M160.9,194.1 L160.7,193.5 M161.3,196.1 L161.0,195.1 L161.2,194.5 L160.9,194.1 M161.3,196.8 L161.3,196.1 M164.9,202.1 L164.4,202.0 L164.3,201.6 L163.5,201.2 L163.6,200.6 L161.3,196.8 M167.0,203.5 L166.4,203.3 L165.8,202.3 L164.9,202.1 M167.5,203.6 L167.0,203.5 M169.7,204.4 L168.8,203.6 L167.5,203.6 M170.8,205.1 L170.5,205.2 L169.7,204.4 M171.3,205.0 L170.8,205.1 M172.4,206.1 L171.7,205.1 L171.3,205.0 M173.6,207.9 L173.6,207.3 L172.4,206.1 M174.9,209.1 L173.6,207.9 M175.1,209.8 L174.9,209.1 M176.1,210.9 L176.0,210.4 L175.1,209.8 M178.7,215.0 L177.9,214.7 L177.9,214.3 L177.3,213.4 L177.4,212.9 L177.1,212.6 M177.1,212.6 L176.4,211.8 L176.4,211.3 L176.1,210.9 M179.9,216.5 L179.0,215.7 L178.7,215.0 M183.1,219.6 L182.7,219.2 L181.4,218.9 L181.2,218.5 L180.8,218.4 L180.9,217.9 L180.1,217.5 L180.1,216.7 L179.9,216.5 M57.2,74.9 L57.5,74.4 L58.0,74.1 M42.3,52.7 L41.9,53.0 M186.1,207.4 L186.2,209.0 L186.0,209.2 M186.9,200.3 L186.3,200.9 L186.3,201.3 L186.6,201.6 L186.7,202.4 L187.1,202.6 L187.3,203.0 L186.8,204.4 L187.0,204.8 L186.0,205.5 L185.9,206.5 L186.2,207.0 L186.1,207.4 M186.0,209.2 L185.5,209.4 L185.5,210.0 L185.2,210.1 L185.8,210.9 L185.7,211.5 L186.0,212.0 L185.9,212.3 L185.5,212.5 L185.6,212.8 L185.1,213.6 L186.1,215.0 M186.1,215.0 L185.8,217.1 M185.8,217.1 L185.3,218.3 L184.2,219.2 M184.2,219.2 L183.1,219.6 M116.8,130.5 L115.6,130.7 L114.8,130.4 M117.9,131.0 L117.7,130.8 M117.7,130.8 L117.4,130.5 L116.8,130.5 M148.4,174.0 L147.5,174.3 L145.8,173.2 M152.5,177.4 L152.8,176.9 L152.7,176.3 L151.3,175.4 M151.3,175.4 L150.2,174.4 L148.4,174.0 M145.8,173.2 L145.4,172.7 M145.4,172.7 L145.0,172.3 L144.6,170.7 L143.9,169.5 L142.6,168.7 M142.6,168.7 L141.9,168.2 L141.4,166.5 L140.2,165.8 L139.9,164.8 L138.9,163.5 L138.2,161.7" fill="none" stroke="var(--water)" stroke-width="1.7" stroke-linejoin="round"/><path d="M138.2,161.7 L137.9,161.9 L137.9,162.1 L138.3,162.5 L138.5,163.3 L138.1,163.7 L138.4,163.6 L138.8,164.0 L139.0,164.0 L139.2,164.2 L139.0,164.3 L139.1,164.7 L139.3,164.6 L139.4,164.9 L139.2,164.9 L138.7,164.7 L138.8,164.8 L139.3,165.5 L139.6,165.1 L139.6,165.5 L139.6,165.8 L140.2,166.5 L139.5,167.1 L140.5,166.9 L140.8,167.0 L141.1,166.7 L141.2,167.0 L141.2,167.5 L141.1,167.6 L141.2,167.9 L141.1,168.1 L141.3,168.4 L141.2,168.5 L141.2,168.6 L141.1,168.9 L141.0,169.0 L140.8,168.8 L140.9,169.0 L140.7,168.9 L140.7,169.2 L140.5,169.2 L140.6,169.3 L140.1,169.5 L140.7,169.4 L141.0,169.7 L141.0,169.5 L141.2,169.2 L141.8,168.8 L142.6,169.1 L142.7,169.2 L142.7,169.4 L143.3,169.6 L143.6,169.9 L143.7,170.4 L144.0,170.6 L144.4,171.6 L144.4,171.9 L144.7,172.1 L144.8,172.5 L145.5,173.5 L145.6,173.8 L145.3,174.0 L145.1,174.0 L144.8,174.5 L144.3,174.7 L144.7,174.7 L144.7,174.8 L144.9,174.5 L145.5,174.3 L146.1,173.9 L146.5,174.1 L147.2,174.9 L148.1,174.6 L148.5,174.1 L149.9,174.3 L150.1,174.5 L150.4,175.1 L150.9,175.3 L151.4,175.8 L151.6,176.2 L152.3,176.2 L152.7,176.7 L152.5,177.4 L152.8,177.4 L152.9,177.1 L152.8,176.2 L152.3,176.0 L152.2,175.5 L151.8,175.3 L151.0,175.1 L150.3,174.2 L149.6,174.1 L148.8,173.7 L148.5,173.7 L148.1,174.0 L147.7,173.8 L147.4,173.9 L147.2,173.6 L146.3,173.1 L146.1,172.9 L146.2,172.7 L145.9,172.5 L145.7,172.4 L145.5,172.5 L145.3,172.3 L145.0,171.8 L145.2,171.4 L145.4,171.4 L145.1,170.4 L144.9,170.3 L144.6,169.7 L144.4,169.6 L143.7,168.5 L143.2,168.4 L143.0,168.1 L142.8,168.3 L142.4,167.9 L142.2,167.4 L142.2,167.2 L142.1,167.1 L142.2,166.8 L142.1,166.5 L142.2,166.3 L141.9,166.5 L141.8,166.4 L142.0,166.1 L141.6,165.9 L141.3,166.0 L141.4,165.7 L140.7,165.6 L140.6,165.5 L140.3,164.4 L139.7,164.0 L139.8,163.7 L139.5,163.6 L139.0,162.9 L139.2,162.5 L138.8,162.5 L138.2,161.7Z" fill="var(--water)"/><circle cx="163.9" cy="193.3" r="2.6" fill="var(--ink)"/><path d="M163.9,193.3 L215,193.3" stroke="var(--ink)" stroke-width="0.7" opacity=".6"/><text x="219" y="191.3" font-family="EB Garamond, Georgia, serif" font-size="15" fill="var(--ink)">Upper Mad River</text><text x="219" y="205.3" font-size="10.5" fill="var(--muted)">312 km² · done</text><circle cx="111.5" cy="127.1" r="2.6" fill="var(--ink)"/><path d="M111.5,127.1 L215,127.1" stroke="var(--ink)" stroke-width="0.7" opacity=".6"/><text x="219" y="125.1" font-family="EB Garamond, Georgia, serif" font-size="15" fill="var(--ink)">Middle Mad River</text><text x="219" y="139.1" font-size="10.5" fill="var(--muted)">229 km² · next</text><circle cx="59.5" cy="66.2" r="2.6" fill="var(--ink)"/><path d="M59.5,66.2 L215,66.2" stroke="var(--ink)" stroke-width="0.7" opacity=".6"/><text x="219" y="64.2" font-family="EB Garamond, Georgia, serif" font-size="15" fill="var(--ink)">Lower Mad River</text><text x="219" y="78.2" font-size="10.5" fill="var(--muted)">740 km² · planned</text><circle cx="13.2" cy="27.8" r="3" fill="var(--water)"/><text x="19.2" y="21.8" font-size="10.5" fill="var(--muted)">to the Pacific</text><text x="151.9" y="172.6" font-family="EB Garamond, Georgia, serif" font-style="italic" font-size="12" fill="var(--water)">Ruth Lake</text></svg>
+        <figcaption class="note">Thin lines are HUC12 subwatersheds, the likely units for each phase. Source: USGS Watershed Boundary Dataset and NHD.</figcaption>
+      </figure>
+    </div>
+    <div class="sec">
+      <div class="eyebrow">Proposed · how the data would be run</div>
+      <h2>One home for the basin's data</h2>
+      <p class="prose" style="margin:0;max-width:70ch">A basin-wide assessment makes a lot of data: lidar products for every subwatershed, tens of thousands of crossings, and what residents and partners add. This proposal puts it in one place the Watershed Research and Training Center would steward: the assessment layers as open files in a public repository, community input in a review sheet in WRTC's Google Drive, and this explorer as the public face.</p>
+      <div class="card" style="background:var(--paper)">
+        <svg viewBox="0 0 760 210" role="img" aria-label="Lidar and public data feed the toolkit, which loads the basin database; community entries are reviewed into the same database; the database feeds this explorer, the printed atlas and open downloads">
+          <defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10z" fill="var(--muted)"/></marker></defs>
+          <g font-size="12" fill="var(--ink)">
+            <rect x="8" y="26" width="150" height="58" rx="8" fill="var(--panel)" stroke="var(--rule)"/><text x="83" y="50" text-anchor="middle" font-family="EB Garamond, serif" font-size="16">Lidar + public data</text><text x="83" y="68" text-anchor="middle" fill="var(--muted)" font-size="11">3DEP, NHD, MTBS, LANDFIRE</text>
+            <rect x="196" y="26" width="160" height="58" rx="8" fill="var(--panel)" stroke="var(--rule)"/><text x="276" y="50" text-anchor="middle" font-family="EB Garamond, serif" font-size="16">Assessment toolkit</text><text x="276" y="68" text-anchor="middle" fill="var(--muted)" font-size="11">roads, crossings, REM, ranks</text>
+            <rect x="394" y="70" width="170" height="70" rx="10" fill="var(--teal)" fill-opacity=".16" stroke="var(--teal)"/><text x="479" y="98" text-anchor="middle" font-family="EB Garamond, serif" font-size="18">Basin data</text><text x="479" y="118" text-anchor="middle" fill="var(--muted)">open files + review sheet</text>
+            <rect x="196" y="140" width="160" height="58" rx="8" fill="var(--panel)" stroke="var(--rule)"/><text x="276" y="164" text-anchor="middle" font-family="EB Garamond, serif" font-size="16">Community + partners</text><text x="276" y="182" text-anchor="middle" fill="var(--muted)">places, project sketches</text>
+            <rect x="602" y="14" width="150" height="46" rx="8" fill="var(--panel)" stroke="var(--rule)"/><text x="677" y="42" text-anchor="middle" font-family="EB Garamond, serif" font-size="16">This explorer</text>
+            <rect x="602" y="82" width="150" height="46" rx="8" fill="var(--panel)" stroke="var(--rule)"/><text x="677" y="110" text-anchor="middle" font-family="EB Garamond, serif" font-size="16">Printed atlas</text>
+            <rect x="602" y="150" width="150" height="46" rx="8" fill="var(--panel)" stroke="var(--rule)"/><text x="677" y="172" text-anchor="middle" font-family="EB Garamond, serif" font-size="16">Open downloads</text><text x="677" y="188" text-anchor="middle" fill="var(--muted)" font-size="11">GeoPackage, CSV</text>
+          </g>
+          <g stroke="var(--muted)" stroke-width="1.4" fill="none" marker-end="url(#ar)">
+            <path d="M158 55 L192 55"/><path d="M356 60 C 380 64, 386 80, 392 92"/><path d="M356 168 C 380 160, 386 140, 392 124"/>
+            <path d="M564 96 C 586 80, 588 48, 598 40"/><path d="M564 105 L598 105"/><path d="M564 116 C 586 132, 588 162, 598 170"/>
+          </g>
+          <text x="384" y="196" font-size="11" fill="var(--muted)">reviewed before it shows</text>
+        </svg>
+      </div>
+      <div class="cards" style="grid-template-columns:repeat(3,minmax(0,1fr))">
+        <div class="card"><h3>Owned and open</h3><p>The layers are open files (GeoJSON, GeoPackage) in WRTC's own repository, and the site runs on free static hosting. No paid platform and no software licenses.</p></div>
+        <div class="card"><h3>Reviewed</h3><p>Every entry arrives in the review sheet as pending. Nothing shows until a reviewer marks it approved, so sensitive places stay off the public map. No contact details are collected.</p></div>
+        <div class="card"><h3>Repeatable</h3><p>Each subwatershed goes through the same pipeline and lands in the same tables, so the Middle and Lower Mad drop in beside the Upper Mad.</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ TAB 2: WHAT WE FOUND ============ -->
+<section class="view wrap" id="v-findings" role="tabpanel" aria-labelledby="t-findings" hidden>
+  <div class="inner">
+    <div class="sec" style="padding-bottom:0">
+      <div class="eyebrow">What we found</div>
+      <h2>Four lenses on the same mountains</h2>
+      <div class="chips" id="themeChips">
+        <button class="chip" data-theme="forest" aria-pressed="true"><i style="background:var(--forest)"></i>Forest to protect</button>
+        <button class="chip" data-theme="roads" aria-pressed="false"><i style="background:var(--rust)"></i>Roads</button>
+        <button class="chip" data-theme="floodplain" aria-pressed="false"><i style="background:var(--teal)"></i>Floodplain connections</button>
+        <button class="chip" data-theme="crossings" aria-pressed="false"><i style="background:var(--fire)"></i>Crossings at risk</button>
+      </div>
+    </div>
+    <div class="split">
+      <div class="mapbox"><div class="map" id="mapF"></div><div id="wcard"></div></div>
+      <aside class="side" id="themePanel" aria-live="polite"></aside>
+    </div>
+  </div>
+</section>
+
+<!-- ============ TAB 3: YOUR PLACES ============ -->
+<section class="view wrap" id="v-places" role="tabpanel" aria-labelledby="t-places" hidden>
+  <div class="inner">
+    <div class="sec" style="padding-bottom:0">
+      <div class="eyebrow">Your places</div>
+      <h2>What do you know about this river?</h2>
+      <p class="prose" style="margin:0;max-width:70ch">Data can find roads; it can't find the swimming hole your family has used for fifty years or the bend where the bank keeps falling in. Pin the places you know and care about. They help us decide where restoration should start, and where it should be careful.</p>
+    </div>
+    <div class="split">
+      <div class="mapbox"><div class="map" id="mapP"></div><div class="hint" id="pinHint" hidden>Click the map where the place is</div></div>
+      <aside class="side">
+        <div class="form" id="pinForm">
+          <div class="eyebrow">Add a place</div>
+          <div class="chips" id="pinTypes"></div>
+          <button class="btn ghost" id="bPick">1 · Pick the spot on the map</button>
+          <label class="f" for="pTitle">2 · Name it<input type="text" id="pTitle" maxlength="80" placeholder="e.g. Rock pool below the bridge"></label>
+          <label class="f" for="pNote">3 · Tell us about it (optional)<textarea id="pNote" maxlength="600" placeholder="When you go, what makes it special, what has changed"></textarea></label>
+          <label class="f" for="pName">Your name, shown with the place (optional)<input type="text" id="pName" maxlength="60" autocomplete="name"></label>
+          <label class="hp" aria-hidden="true">Leave this empty<input type="text" id="pWeb" tabindex="-1" autocomplete="off"></label>
+          <label style="font-size:13px;display:flex;gap:8px;align-items:flex-start"><input type="checkbox" id="pOk" style="margin-top:3px"> This place can be shown publicly once a reviewer approves it.</label>
+          <button class="btn" id="bSave" disabled>Send for review</button>
+          <div class="note" id="pinStatus"></div>
+          <div class="mode" data-mode></div>
+        </div>
+        <div class="warnbox"><b>Before you pin.</b> Please don't share home addresses or sensitive cultural sites; share those with tribal partners directly. Entries appear on the map after a reviewer approves them.</div>
+        <div><div class="eyebrow" style="margin-bottom:6px">On the map</div><div class="chips" id="pinFilter"></div></div>
+        <ul class="plist" id="pinList"></ul>
+      </aside>
+    </div>
+  </div>
+</section>
+
+<!-- ============ TAB 4: ROAD PROJECTS ============ -->
+<section class="view wrap" id="v-projects" role="tabpanel" aria-labelledby="t-projects" hidden>
+  <div class="inner">
+    <div class="sec" style="padding-bottom:0">
+      <div class="eyebrow">Road projects</div>
+      <h2>Sketch a project, see what it would take</h2>
+      <p class="prose" style="margin:0;max-width:70ch">Draw a circle around a group of crossings. The panel counts what's inside and prices a first-pass treatment with planning placeholders you can change. Send a sketch in and, once it's reviewed, it joins the funding forecast below.</p>
+    </div>
+    <div class="split">
+      <div class="mapbox"><div class="map" id="mapR"></div><div class="hint" id="drawHint" hidden>Click the center of the project area</div></div>
+      <aside class="side">
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><button class="btn" id="bDraw">Draw a project area</button><span class="tag" id="exTag">Example area</span></div>
+        <label class="f" for="rad">Radius <span id="radV" class="num"></span><input type="range" id="rad" min="200" max="3000" step="50" value="900"></label>
+        <div class="big" id="selBig"></div>
+        <div class="legend"><div><i class="dot" style="background:var(--fire)"></i>Could divert a stream if it plugs</div><div><i class="dot" style="background:var(--panel);border:1px solid var(--ink)"></i>Other crossing · size = fill at the crossing</div></div>
+        <div>
+          <div class="eyebrow" style="margin-bottom:6px">Treatment and cost <span class="tag">planning placeholders</span></div>
+          <div class="costs">
+            <div class="line"><span>Upgrade each culvert ($ each)</span><input type="number" id="cCul" value="18000" min="0" step="500"></div>
+            <div class="line"><span>Critical dip at each diversion-prone crossing ($ each)</span><input type="number" id="cDip" value="3500" min="0" step="100"></div>
+            <div class="line"><span>Share of crossings on roads to close (%)</span><input type="number" id="cShare" value="30" min="0" max="100" step="5"></div>
+            <div class="line"><span>Dig out crossing fill on closed roads ($ per m³)</span><input type="number" id="cFill" value="35" min="0" step="1"></div>
+            <div class="line"><span>Design, permits, oversight (%)</span><input type="number" id="cOH" value="25" min="0" max="200" step="5"></div>
+          </div>
+          <div class="stack" id="costStack" style="margin-top:10px"></div>
+          <div class="total"><span>First-pass cost</span><b class="num" id="costTot">$0</b></div>
+          <p class="note" id="costNote"></p>
+        </div>
+        <div class="form">
+          <div class="row2"><label class="f" for="prName">Project name<input type="text" id="prName" maxlength="70" placeholder="e.g. Deep Hollow storm-proofing"></label>
+          <label class="f" for="prYear">Start year<select id="prYear"><option>2027</option><option selected>2028</option><option>2029</option><option>2030</option><option>2031</option></select></label></div>
+          <label class="f" for="prLead">Lead or partner (optional)<input type="text" id="prLead" maxlength="70"></label>
+          <label class="hp" aria-hidden="true">Leave this empty<input type="text" id="prWeb" tabindex="-1" autocomplete="off"></label>
+          <button class="btn" id="bSaveProj">Send sketch for review</button>
+          <div class="note" id="projStatus"></div>
+          <div class="mode" data-mode></div>
+        </div>
+      </aside>
+    </div>
+    <div class="sec">
+      <div class="cols2">
+        <div class="chart"><div class="eyebrow">Funding forecast</div><h2 style="font-size:26px;margin:4px 0 8px">What the sketches add up to</h2><div id="fcChart"></div></div>
+        <div><div class="eyebrow" style="margin-bottom:6px">Sketches</div><ul class="plist" id="projList"></ul></div>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+<footer class="foot wrap"><div class="inner">Draft prepared for the Watershed Research and Training Center. Upper Mad River watershed assessment, 2026. Lidar: USGS 3DEP. Roads and crossings: ERASER and culvert_finder. Streams: USGS NHD. Fire: MTBS. Forest: LANDFIRE 2024. Screening results, not field verified.</div></footer>
+
+<script src="vendor/maplibre-gl.js"></script>
+<script src="vendor/three.min.js"></script>
+<script src="vendor/OrbitControls.js"></script>
+<script src="config.js"></script>
+<script>
+(function(){
+"use strict";
+const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const fmt = n => Math.round(n).toLocaleString("en-US");
+const money = n => n >= 1e6 ? "$" + (n / 1e6).toFixed(n >= 1e7 ? 0 : 1) + "M" : "$" + fmt(n / 1000) + "k";
+const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const cache = {};
+const load = (f, kind) => cache[f] || (cache[f] = fetch("data/" + f).then(r => { if (!r.ok) throw new Error(f); return kind === "img" ? r.blob() : r.json(); }));
+
+/* ---------------- tabs + hash routing ---------------- */
+const VIEWS = ["river", "findings", "places", "projects"];
+const inits = {};
+function show(v){
+  if (!VIEWS.includes(v)) v = "river";
+  VIEWS.forEach(x => { $("#v-" + x).hidden = x !== v; $("#t-" + x).setAttribute("aria-selected", x === v); });
+  if (inits[v]) inits[v]();
+  window.scrollTo({ top: 0 });
+}
+$$(".tab").forEach(b => b.addEventListener("click", () => { location.hash = b.dataset.v; }));
+$$("[data-go]").forEach(b => b.addEventListener("click", () => { location.hash = b.dataset.go; }));
+addEventListener("hashchange", () => show(location.hash.slice(1)));
+
+/* ---------------- shared map setup ---------------- */
+const BOUNDS = [[-123.442, 40.088], [-123.131, 40.381]];
+const USGS = "https://basemap.nationalmap.gov/arcgis/rest/services/", TNM = "USGS The National Map";
+const BASEMAPS = {
+  relief: { name: "Relief", src: [
+    { tiles: [USGS + "USGSShadedReliefOnly/MapServer/tile/{z}/{y}/{x}"], tileSize: 256, maxzoom: 16, attribution: TNM + " shaded relief", hide: 12 },
+    // 3DEP lidar hillshade, drawn on request for each tile, once zoomed in far enough for 1 m detail to matter
+    { tiles: ["https://elevation.nationalmap.gov/arcgis/rest/services/3DEPElevation/ImageServer/exportImage?bbox={bbox-epsg-3857}&bboxSR=3857&imageSR=3857&size=512,512&format=jpg&renderingRule=" +
+        encodeURIComponent('{"rasterFunction":"Hillshade Multidirectional"}') + "&f=image"], tileSize: 512, attribution: "USGS 3DEP lidar", show: 12 } ] },
+  topo: { name: "Topo", src: [{ tiles: [USGS + "USGSTopo/MapServer/tile/{z}/{y}/{x}"], tileSize: 256, maxzoom: 16, attribution: TNM }] },
+  imagery: { name: "Imagery", src: [{ tiles: [USGS + "USGSImageryOnly/MapServer/tile/{z}/{y}/{x}"], tileSize: 256, maxzoom: 16, attribution: TNM + " imagery" }] },
+  streets: { name: "Streets", src: [{ tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"], tileSize: 256, maxzoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' }] }
+};
+let BM = (() => { try { return BASEMAPS[localStorage.getItem("basemap")] ? localStorage.getItem("basemap") : "relief"; } catch (e) { return "relief"; } })();
+const ALLMAPS = [];
+function addBasemaps(map){
+  Object.entries(BASEMAPS).forEach(([k, b]) => b.src.forEach((t, i) => { const id = `bm-${k}-${i}`;
+    map.addSource(id, { type: "raster", tiles: t.tiles, tileSize: t.tileSize, maxzoom: t.maxzoom || 22, attribution: t.attribution });
+    const L = { id, type: "raster", source: id, layout: { visibility: k === BM ? "visible" : "none" }, paint: { "raster-fade-duration": 150 } };
+    if (t.hide) L.maxzoom = t.hide; if (t.show) L.minzoom = t.show; map.addLayer(L); }));
+}
+function setBasemap(k){
+  BM = k; try { localStorage.setItem("basemap", k); } catch (e) {}
+  ALLMAPS.forEach(m => { if (!m.getLayer("bm-relief-0")) return;
+    Object.entries(BASEMAPS).forEach(([j, b]) => b.src.forEach((_, i) => m.setLayoutProperty(`bm-${j}-${i}`, "visibility", j === k ? "visible" : "none"))); });
+  document.querySelectorAll(".bmctl button").forEach(b => b.setAttribute("aria-pressed", b.dataset.bm === k));
+}
+class BasemapCtl { onAdd(){ const d = document.createElement("div"); d.className = "maplibregl-ctrl maplibregl-ctrl-group bmctl"; d.setAttribute("role", "group"); d.setAttribute("aria-label", "Basemap");
+    d.innerHTML = Object.entries(BASEMAPS).map(([k, b]) => `<button type="button" data-bm="${k}" aria-pressed="${k === BM}">${b.name}</button>`).join("");
+    d.addEventListener("click", e => { const b = e.target.closest("[data-bm]"); if (b) setBasemap(b.dataset.bm); }); this.d = d; return d; }
+  onRemove(){ this.d.remove(); } }
+function baseMap(el){
+  const map = new maplibregl.Map({ container: el, bounds: BOUNDS, fitBoundsOptions: { padding: 20 }, attributionControl: { compact: true }, cooperativeGestures: true,
+    style: { version: 8, sources: {}, layers: [{ id: "bg", type: "background", paint: { "background-color": css("--paper") } }] } });
+  map.addControl(new maplibregl.NavigationControl({ showCompass: true }), "top-right");
+  map.addControl(new BasemapCtl(), "top-left"); ALLMAPS.push(map);
+  map.addControl(new maplibregl.ScaleControl({ unit: "metric" }), "bottom-left");
+  map.ready = new Promise(res => map.on("load", async () => {
+    const [ov, basin, ws, st] = await Promise.all([load("overlays.json"), load("basin.json"), load("watersheds.json"), load("streams.json")]);
+    addBasemaps(map);
+    map.addSource("ws", { type: "geojson", data: ws });
+    map.addLayer({ id: "ws-fill", type: "fill", source: "ws", paint: { "fill-color": "#ffffff", "fill-opacity": 0.001 } });
+    map.addLayer({ id: "ws-line", type: "line", source: "ws", paint: { "line-color": "#ffffff", "line-width": 1, "line-opacity": 0.8 } });
+    map.addLayer({ id: "ws-hi", type: "line", source: "ws", filter: ["==", "name", ""], paint: { "line-color": css("--ink"), "line-width": 2.4 } });
+    map.addSource("st", { type: "geojson", data: st });
+    map.addLayer({ id: "st", type: "line", source: "st", paint: { "line-color": "#2F5F86", "line-opacity": 0.75,
+      "line-width": ["case", ["has", "a"], ["interpolate", ["linear"], ["get", "a"], 2, 0.6, 50, 1.6, 300, 3.2], 0.9] } });
+    map.addSource("basin", { type: "geojson", data: basin });
+    map.addLayer({ id: "lake", type: "fill", source: "basin", filter: ["==", "k", "lake"], paint: { "fill-color": "#A8C6DA" } });
+    map.addLayer({ id: "fp-line", type: "line", source: "basin", filter: ["==", "k", "footprint"], paint: { "line-color": "#2E3A40", "line-width": 1.2, "line-opacity": 0.7 } });
+    res(map);
+  }));
+  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => map.getLayer("bg") && map.setPaintProperty("bg", "background-color", css("--paper")));
+  return map;
+}
+const below = (map) => map.getLayer("ws-fill") ? "ws-fill" : undefined;
+
+/* ---------------- TAB 1: 3D river ---------------- */
+let three = null;
+inits.river = () => { if (three) { three.resize(); return; } three = initThree(); };
+function initThree(){
+  const canvas = $("#c3d"), hero = $("#hero"), stat = $("#heroStatic");
+  stat.style.backgroundImage = "url(data/terrain_tex.jpg)";
+  if (!window.THREE) { canvas.hidden = true; return { resize(){} }; }
+  let renderer;
+  try { renderer = new THREE.WebGLRenderer({ canvas, antialias: true }); } catch (e) { canvas.hidden = true; return { resize(){} }; }
+  renderer.setPixelRatio(Math.min(2, devicePixelRatio));
+  const scene = new THREE.Scene(); scene.background = new THREE.Color("#0e1b26"); scene.fog = new THREE.Fog("#0e1b26", 4200, 9000);
+  const cam = new THREE.PerspectiveCamera(42, 1, 10, 20000);
+  const ctl = new THREE.OrbitControls(cam, canvas); ctl.enableDamping = true; ctl.maxPolarAngle = 1.35; ctl.enabled = false;
+  const EX = 1.35; let T = null, FP = null, flying = false, t0 = 0, mesh;
+  const DUR = 110000, ALT = 60, AHEAD = 850, SPAN = 10;   // flight length (ms), height above the river (m), look-ahead (m), sample spacing (m)
+  const lookT = new THREE.Vector3(), from = { p: new THREE.Vector3(), q: new THREE.Vector3() };
+  // even spacing along the line, then a Gaussian smooth (ends mirrored so the line keeps its heading)
+  function resamp(P, d){ const o = [P[0].slice()]; let carry = 0;
+    for (let i = 1; i < P.length; i++){ const a = P[i - 1], b = P[i], seg = Math.hypot(b[0] - a[0], b[1] - a[1]); if (!seg) continue; let t = d - carry;
+      for (; t <= seg; t += d) o.push(a.map((v, k) => v + (b[k] - v) * t / seg)); carry = seg - (t - d); }
+    return o; }
+  function gsmooth(P, sig){ const k = Math.min(P.length - 1, Math.ceil(sig * 3)), w = []; let ws = 0;
+    for (let j = -k; j <= k; j++){ w.push(Math.exp(-j * j / (2 * sig * sig))); ws += w[w.length - 1]; }
+    const n = P.length, at = i => i < 0 ? P[0].map((v, d) => 2 * v - P[-i][d]) : i >= n ? P[n - 1].map((v, d) => 2 * v - P[2 * (n - 1) - i][d]) : P[i];
+    return P.map((_, i) => { const o = P[i].map(() => 0); for (let j = -k; j <= k; j++){ const q = at(i + j); for (let d = 0; d < o.length; d++) o[d] += q[d] * w[j + k]; } return o.map(v => v / ws); }); }
+  function along(P, s){ const f = Math.max(0, Math.min(P.length - 1.0001, s / SPAN)), i = f | 0, r = f - i; return P[i].map((v, d) => v + (P[i + 1][d] - v) * r); }
+  const labels = [];
+  function resize(){ const w = hero.clientWidth, h = hero.clientHeight; renderer.setSize(w, h, false); cam.aspect = w / h; cam.updateProjectionMatrix(); }
+  function home(){ cam.position.set(-1900, 1500, 2600); ctl.target.set(150, 0, -150); cam.lookAt(ctl.target); ctl.update(); }
+  Promise.all([load("terrain.json"), new Promise((res, rej) => { const im = new Image(); im.onload = () => res(im); im.onerror = rej; im.src = "data/terrain_height.png"; })]).then(([tj, im]) => {
+    T = tj; const n = tj.n, cv = document.createElement("canvas"); cv.width = cv.height = n;
+    const cx = cv.getContext("2d"); cx.drawImage(im, 0, 0); const px = cx.getImageData(0, 0, n, n).data;
+    const g = new THREE.PlaneGeometry(tj.size_m, tj.size_m, n - 1, n - 1); g.rotateX(-Math.PI / 2);
+    const pos = g.attributes.position;
+    const HT = new Float32Array(n * n);
+    for (let i = 0; i < n * n; i++){ HT[i] = ((px[i * 4] * 256 + px[i * 4 + 1]) / 10) * EX; pos.setY(i, HT[i]); }
+    g.computeVertexNormals();
+    const tex = new THREE.TextureLoader().load("data/terrain_tex.jpg", () => { stat.hidden = true; });
+    tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+    mesh = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ map: tex })); scene.add(mesh);
+    // Flight line: the channel follows every meander, so the camera rides a heavily smoothed copy of it (sigma 300 m)
+    // and looks at a lightly smoothed copy (sigma 150 m) well upriver. Height is the smoothed river surface plus ALT,
+    // raised where the smoothed line cuts over a terrace or spur, then eased so it never steps.
+    const raw = resamp(tj.path.map(p => [p[0], -p[1], (p[2] - tj.zmin) * EX]), SPAN);
+    const cpath = resamp(gsmooth(raw, 300 / SPAN), SPAN), lpath = resamp(gsmooth(raw, 150 / SPAN), SPAN);
+    const half = tj.size_m / 2, cell = tj.size_m / (n - 1);
+    const hAt = (x, z) => { const c = Math.max(0, Math.min(n - 1.001, (x + half) / cell)), r = Math.max(0, Math.min(n - 1.001, (z + half) / cell)), c0 = c | 0, r0 = r | 0, fc = c - c0, fr = r - r0, i = r0 * n + c0;
+      return (HT[i] * (1 - fc) + HT[i + 1] * fc) * (1 - fr) + (HT[i + n] * (1 - fc) + HT[i + n + 1] * fc) * fr; };
+    const ring = [[0, 0], [60, 0], [-60, 0], [0, 60], [0, -60], [42, 42], [-42, 42], [42, -42], [-42, -42]];
+    let alt = cpath.map(p => Math.max(p[2] + ALT, Math.max(...ring.map(o => hAt(p[0] + o[0], p[1] + o[1]))) + 30));
+    alt = alt.map((_, i) => Math.max(...alt.slice(Math.max(0, i - 15), i + 16)));            // hold the height through each rise
+    alt = gsmooth(alt.map(v => [v]), 12).map(v => v[0]);
+    FP = { c: cpath.map((p, i) => [p[0], alt[i], p[1]]), l: lpath.map(p => [p[0], p[2] + 6, p[1]]), len: (Math.min(cpath.length, lpath.length) - 1) * SPAN };
+    tj.labels.forEach(l => { const d = document.createElement("div"); d.className = "lab3d"; d.textContent = l.name; $("#labs3d").appendChild(d);
+      labels.push({ el: d, v: new THREE.Vector3(l.x, (l.z - tj.zmin) * EX + 60, -l.y) }); });
+    resize(); home(); requestAnimationFrame(loop);
+    if (!reduced) setTimeout(() => { if (!ctl.enabled && !flying) fly(true); }, 1200);
+  }).catch(() => { canvas.hidden = true; });
+  function fly(on){ flying = on; $("#bFly").setAttribute("aria-pressed", on); $("#bFly").textContent = on ? "Pause" : "Fly up the river";
+    if (on) { ctl.enabled = false; $("#bOrbit").setAttribute("aria-pressed", false); t0 = performance.now() - (fly.t || 0) * DUR;
+      // ease in from wherever the camera is now
+      fly.intro = performance.now(); from.p.copy(cam.position); cam.getWorldDirection(from.q).multiplyScalar(800).add(cam.position); }
+    else fly.t = fly.t || 0; }
+  function loop(now){
+    requestAnimationFrame(loop);
+    if (flying && FP) {
+      const e = Math.min(1, (now - fly.intro) / 3500), ease = e * e * (3 - 2 * e);
+      if (e < 1) t0 = now - (fly.t || 0) * DUR;                       // hold the place on the line during the ease-in
+      let u = (now - t0) / DUR; if (u >= 1) { u = 0; t0 = now; } fly.t = u;
+      const r = 0.12, vm = 1 / (1 - r), w = 1 - u;                   // even speed, easing over the first and last 12%
+      const s = (u < r ? vm * u * u / (2 * r) : u > 1 - r ? 1 - vm * w * w / (2 * r) : vm * (u - r / 2)) * (FP.len - AHEAD);
+      const p = along(FP.c, s), q = along(FP.l, s + AHEAD);
+      cam.position.set(p[0], p[1], p[2]); lookT.set(q[0], q[1], q[2]);
+      if (ease < 1){ cam.position.lerpVectors(from.p, cam.position, ease); lookT.lerpVectors(from.q, lookT, ease); }
+      cam.lookAt(lookT);
+    } else ctl.update();
+    renderer.render(scene, cam);
+    const w = hero.clientWidth, h = hero.clientHeight;
+    labels.forEach(l => { const v = l.v.clone().project(cam); const vis = v.z < 1 && Math.abs(v.x) < 1.05 && Math.abs(v.y) < 1.05;
+      l.el.style.display = vis ? "" : "none"; if (vis) { l.el.style.left = ((v.x + 1) / 2 * w) + "px"; l.el.style.top = ((1 - v.y) / 2 * h) + "px"; } });
+  }
+  $("#bFly").addEventListener("click", () => fly(!flying));
+  $("#bOrbit").addEventListener("click", () => { fly(false); ctl.enabled = !ctl.enabled; $("#bOrbit").setAttribute("aria-pressed", ctl.enabled); if (ctl.enabled) { if (fly.t) ctl.target.copy(lookT); ctl.update(); } });
+  $("#bReset").addEventListener("click", () => { fly(false); fly.t = 0; home(); });
+  addEventListener("resize", resize);
+  return { resize };
+}
+
+/* ---------------- TAB 2: what we found ---------------- */
+let mapF = null, theme = "forest", roadMode = "both", WS = null;
+const ORDER = []; // atlas page order
+const THEMES = {
+  forest: { title: "Forest to protect", color: "--forest",
+    big: [["5,754 ha", "forest the 2020 fire left standing"], ["2,161 ha", "of it within 1 km of homes"], ["1,924 ha", "tall stands to keep as refugia"]],
+    text: "The August Complex burned 95% of the Upper Mad, more than half at high severity. Living forest survives in patches. Near homes and along roads, thinning those patches lowers the risk to people. Tall stands far from roads are seed sources and shelter to keep.",
+    legend: [["#C2491D", "Within 1 km of buildings"], ["#E9A23B", "Within 100 m of a mapped road"], ["#2F6B45", "Tall stands (25 m and up)"], ["#9DB58A", "Other forest left standing"], ["#A1302B", "Burned at high severity, 2020", 0.6]],
+    rank: "rank_fuel", metric: p => fmt(p.treat) + " ha treatable",
+    concept: '<svg viewBox="0 0 300 90"><rect width="300" height="90" fill="var(--fire)" opacity=".18"/><path d="M20 60 C 40 30, 90 35, 80 65 S 30 80, 20 60Z" fill="#C2491D"/><path d="M130 40 C 150 20, 200 25, 195 55 S 140 70, 130 40Z" fill="#2F6B45"/><path d="M230 60 C 245 45, 280 50, 275 72 S 235 80, 230 60Z" fill="#9DB58A"/><text x="22" y="86" font-size="10" fill="var(--muted)">near homes</text><text x="138" y="80" font-size="10" fill="var(--muted)">refugia</text><text x="228" y="88" font-size="10" fill="var(--muted)">other</text></svg>' },
+  roads: { title: "Roads", color: "--rust",
+    big: [["1,556 km", "of road found in the lidar"], ["540 km", "on public maps (TIGER and OSM average)"], ["65%", "missing from any map"]],
+    text: "Public road maps show about a third of the roads that are really here. Most of the rest are old logging roads under the forest. Unmapped roads still carry water and still fail, so they belong in any plan.",
+    legend: [["#4A4A4A", "On a public map", 1, "line"], ["#E26D1C", "Only in the lidar", 1, "line"]],
+    rank: "rank_sed", metric: p => fmt(p.road_km) + " km road · " + Math.round(p.pct_missed) + "% unmapped",
+    concept: '<svg viewBox="0 0 300 90"><path d="M10 80 C 60 60, 90 70, 130 40 S 220 30, 290 10" fill="none" stroke="#4A4A4A" stroke-width="3"/><path d="M60 64 C 80 40, 70 20, 100 8 M150 36 C 160 60, 200 70, 230 82 M210 28 C 230 40, 260 45, 285 60" fill="none" stroke="#E26D1C" stroke-width="2.4" stroke-dasharray="6 3"/><text x="12" y="20" font-size="10" fill="var(--muted)">dashed: on no map</text></svg>' },
+  floodplain: { title: "Floodplain connections", color: "--teal",
+    big: [["447 ha", "within 2 m of a channel"], ["589 ha", "at 2 to 4 m"], ["409 ha", "on open National Forest"]],
+    text: "Valley floor within 2 m of the river can often be reconnected with low-tech, process-based tools: beaver dam analogs and wood structures that slow water and raise the water table. The 2 to 4 m band usually needs earthwork. Most of the low ground on the main stem near Ruth is private, so that work starts with willing landowners.",
+    legend: [["#127A7A", "Within 2 m, small-lift restoration"], ["#8CC5B8", "2 to 4 m, valley reset"], ["#B5413B", "Constrained: buildings, airport, county roads", 1]],
+    rank: "rank_fp", metric: p => fmt(p.t1) + " ha ≤ 2 m",
+    concept: '<svg viewBox="0 0 300 90"><path d="M0 10 C 60 20, 100 72, 130 78 L 175 79 C 200 72, 250 20, 300 12" fill="none" stroke="var(--ink)" stroke-width="2"/><path d="M110 64 L 190 64 L 181 78 L 118 78Z" fill="#8CC5B8"/><path d="M118 78 L 181 78 L 175 80 L 130 79Z" fill="#127A7A"/><text x="200" y="70" font-size="10" fill="var(--muted)">4 m</text><text x="200" y="82" font-size="10" fill="var(--muted)">2 m</text></svg>' },
+  crossings: { title: "Crossings at risk", color: "--fire",
+    big: [["7,567", "road–stream crossings"], ["75%", "could divert a creek down the road"], ["1.7 M m³", "of fill at crossings"]],
+    text: "Every crossing is a bet that the culvert stays open. Where the road slopes away from the crossing, a plugged pipe sends the creek down the road and onto a new slope. Big dots hold the most fill: the most sediment if the crossing washes out.",
+    legend: [["#A1302B", "Could divert a stream", 1, "dot"], ["#FFFFFF", "Low diversion risk", 1, "dot"]],
+    rank: "rank_sed", metric: p => fmt(p.xings) + " crossings · " + p.pct_div + "% divert",
+    concept: '<svg viewBox="0 0 300 90"><path d="M0 22 L 300 72" stroke="var(--ink)" stroke-width="2"/><path d="M150 0 L 150 47" stroke="var(--water)" stroke-width="3"/><path d="M150 47 L 230 61" stroke="var(--water)" stroke-width="3" stroke-dasharray="5 4"/><circle cx="150" cy="47" r="9" fill="#A1302B"/><circle cx="60" cy="32" r="5" fill="#fff" stroke="var(--ink)"/><text x="165" y="40" font-size="10" fill="var(--muted)">plugged: water runs down the road</text></svg>' }
+};
+inits.findings = () => {
+  if (mapF) { mapF.resize(); return; }
+  mapF = baseMap("mapF");
+  mapF.ready.then(async map => {
+    const [ov, rm, rl, fpz, xs] = await Promise.all([load("overlays.json"), load("roads_mapped.json"), load("roads_lidar_only.json"), load("floodplain.json"), load("crossings.json")]);
+    WS = (await load("watersheds.json")).features.map(f => f.properties);
+    const b = below(map);
+    map.addSource("fire", { type: "image", url: new URL("data/fire2020.png", location.href).href, coordinates: ov.fire2020 });
+    map.addLayer({ id: "fire", type: "raster", source: "fire", paint: { "raster-opacity": 0.32, "raster-fade-duration": 0 } }, b);
+    map.addSource("forest", { type: "image", url: new URL("data/forest.png", location.href).href, coordinates: ov.forest });
+    map.addLayer({ id: "forest", type: "raster", source: "forest", paint: { "raster-fade-duration": 0 } }, b);
+    map.addSource("fpz", { type: "geojson", data: fpz });
+    map.addLayer({ id: "fpz", type: "fill", source: "fpz", paint: { "fill-color": ["case", ["==", ["get", "own"], "Constrained"], "#B5413B", ["==", ["get", "tier"], 1], "#127A7A", "#8CC5B8"], "fill-opacity": 0.85 } });
+    map.addSource("rm", { type: "geojson", data: rm }); map.addSource("rl", { type: "geojson", data: rl });
+    map.addLayer({ id: "rm", type: "line", source: "rm", paint: { "line-color": "#3E3E3E", "line-width": 1.1 } });
+    map.addLayer({ id: "rl", type: "line", source: "rl", paint: { "line-color": "#E26D1C", "line-width": 1.2 } });
+    map.addSource("xs", { type: "geojson", data: xsGeo(xs) });
+    map.addLayer({ id: "xs", type: "circle", source: "xs", paint: { "circle-radius": ["interpolate", ["linear"], ["get", "f"], 0, 1.6, 400, 3.2, 1500, 6.5],
+      "circle-color": ["case", ["==", ["get", "d"], 1], "#A1302B", "#FFFFFF"], "circle-stroke-color": "#2B2B2B", "circle-stroke-width": 0.4 } });
+    map.on("click", "ws-fill", e => openCard(e.features[0].properties.name));
+    map.on("mouseenter", "ws-fill", () => map.getCanvas().style.cursor = "pointer");
+    map.on("mouseleave", "ws-fill", () => map.getCanvas().style.cursor = "");
+    computeOrder(); applyTheme();
+  });
+};
+function xsGeo(xs){ return { type: "FeatureCollection", features: xs.map(r => ({ type: "Feature", geometry: { type: "Point", coordinates: [r[0], r[1]] }, properties: { k: r[2], d: r[3], f: r[4], h: r[5], w: r[6] } })) }; }
+function computeOrder(){
+  const creeks = WS.filter(p => p.rank_sed).sort((a, b) => a.rank_sed - b.rank_sed);
+  const groups = WS.filter(p => !p.rank_sed).sort((a, b) => b.sc_sed - a.sc_sed);
+  creeks.concat(groups).forEach((p, i) => ORDER.push([p.name, 3 + 2 * i]));
+}
+$$("#themeChips .chip").forEach(c => c.addEventListener("click", () => { theme = c.dataset.theme; $$("#themeChips .chip").forEach(x => x.setAttribute("aria-pressed", x === c)); applyTheme(); }));
+function vis(map, id, on){ if (map.getLayer(id)) map.setLayoutProperty(id, "visibility", on ? "visible" : "none"); }
+function applyTheme(){
+  const T = THEMES[theme]; if (!mapF) return;
+  const m = mapF;
+  vis(m, "forest", theme === "forest"); vis(m, "fire", theme === "forest");
+  vis(m, "rm", theme === "roads" && roadMode !== "lidar"); vis(m, "rl", theme === "roads" && roadMode !== "mapped");
+  vis(m, "fpz", theme === "floodplain"); vis(m, "xs", theme === "crossings");
+  const top = (WS || []).filter(p => p[T.rank]).sort((a, b) => a[T.rank] - b[T.rank]).slice(0, 5);
+  const P = $("#themePanel");
+  P.innerHTML = `<div class="eyebrow">Lens</div><h2>${T.title}</h2><div class="concept">${T.concept}</div>
+    <div class="big">${T.big.map(([v, l]) => `<div><b class="num">${v}</b><span>${l}</span></div>`).join("")}</div>
+    ${theme === "roads" ? `<div class="seg" role="group" aria-label="Which roads"><button data-r="mapped">On maps</button><button data-r="lidar">Lidar only</button><button data-r="both">Both</button></div>` : ""}
+    <p style="margin:0">${T.text}</p>
+    <div class="legend">${T.legend.map(([c, l, o, k]) => `<div><i class="${k || ""}" style="background:${c};opacity:${o || 1};${c === "#FFFFFF" ? "border:1px solid var(--ink)" : ""}"></i>${l}</div>`).join("")}</div>
+    <div><div class="eyebrow" style="margin-bottom:4px">Creeks that stand out</div><ul class="toplist">${top.map(p => `<li><button data-ws="${p.name}"><span class="r">${p[T.rank]}</span><span class="n">${p.name}</span><span class="r">${T.metric(p)}</span></button></li>`).join("")}</ul>
+    <p class="note" style="margin:6px 0 0">Ranked among the 26 creeks. Click a creek here or on the map.</p></div>`;
+  $$("#themePanel [data-ws]").forEach(b => b.addEventListener("click", () => openCard(b.dataset.ws, true)));
+  $$("#themePanel [data-r]").forEach(b => { b.setAttribute("aria-pressed", b.dataset.r === roadMode); b.addEventListener("click", () => { roadMode = b.dataset.r; applyTheme(); }); });
+}
+function openCard(name, zoom){
+  const p = WS.find(x => x.name === name); if (!p) return;
+  mapF.setFilter("ws-hi", ["==", "name", name]);
+  if (zoom) { load("watersheds.json").then(fc => { const f = fc.features.find(x => x.properties.name === name); const bb = bbox(f.geometry); mapF.fitBounds(bb, { padding: 60, duration: reduced ? 0 : 900 }); }); }
+  const pg = (ORDER.find(o => o[0] === name) || [0, 0])[1];
+  const rk = (k, s) => p[k] ? "#" + p[k] : Math.round(p[s]);
+  $("#wcard").innerHTML = `<div class="wcard"><button class="btn ghost x" aria-label="Close" id="wx">×</button><div class="eyebrow">${p.kind === "mainstem_direct" ? "Main-stem unit" : "Creek"} · ${p.area} km²</div><h3>${p.name}</h3>
+    <div class="ranks"><div><b>${rk("rank_sed", "sc_sed")}</b>sediment</div><div><b>${rk("rank_fp", "sc_fp")}</b>floodplain</div><div><b>${rk("rank_fuel", "sc_fuel")}</b>forest</div><div><b>${rk("rank_rec", "sc_rec")}</b>fire</div></div>
+    <table><tr><td>Road in the lidar</td><td>${fmt(p.road_km)} km</td></tr><tr><td>Missing from maps</td><td>${Math.round(p.pct_missed)}%</td></tr>
+    <tr><td>Crossings · could divert</td><td>${fmt(p.xings)} · ${p.pct_div}%</td></tr><tr><td>Fill at crossings</td><td>${fmt(p.fill)} m³</td></tr>
+    <tr><td>Valley floor ≤ 2 m · 2–4 m</td><td>${fmt(p.t1)} · ${fmt(p.t2)} ha</td></tr><tr><td>Treatable forest</td><td>${fmt(p.treat)} ha</td></tr>
+    <tr><td>Burned high severity, 2020</td><td>${Math.round(p.high_sev)}%</td></tr></table>
+    <p class="note" style="margin:0">${p.rank_sed ? "Ranks among 26 creeks; 1 = most need or opportunity." : "Main-stem units are scored 0–100, not ranked."} Atlas pages ${pg}–${pg + 1}.</p></div>`;
+  $("#wx").addEventListener("click", () => { $("#wcard").innerHTML = ""; mapF.setFilter("ws-hi", ["==", "name", ""]); });
+}
+function bbox(g){ let a = [180, 90, -180, -90]; const walk = c => typeof c[0] === "number" ? (a = [Math.min(a[0], c[0]), Math.min(a[1], c[1]), Math.max(a[2], c[0]), Math.max(a[3], c[1])]) : c.forEach(walk); walk(g.coordinates); return [[a[0], a[1]], [a[2], a[3]]]; }
+
+/* ---------------- community store: a Google Sheet (Apps Script web app) when config.js names one, this browser otherwise ---------------- */
+// Same pattern as the Lost Meadows map: entries go out as a JSON beacon and land as a "pending" row in the Sheet.
+// A reviewer types "approved" in the Sheet; the script's GET returns approved rows only.
+const CFG = window.EXPLORER_CONFIG || {};
+const EP = (CFG.sheetEndpoint || "").trim();
+const LIVE = /^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec$/.test(EP);
+const ls = {
+  get(k, d){ try { const v = JSON.parse(localStorage.getItem(k)); return v == null ? d : v; } catch (e) { return d; } },
+  set(k, v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+};
+const newId = () => (Date.now().toString(36) + Math.random().toString(36).slice(2, 7)).slice(0, 16);
+const TAB = { places: "places", project_sketches: "sketches" };
+const store = {
+  // approved rows (live) or this browser's demo rows
+  async list(table){
+    if (!LIVE) return ls.get("demo_" + table, []);
+    const r = await fetch(EP + "?table=" + TAB[table], { cache: "no-store" }); if (!r.ok) throw new Error(r.status);
+    const rows = await r.json(); if (!Array.isArray(rows)) throw new Error("bad reply");
+    rows.forEach(p => { p.created_at = p.submitted_utc; p.status = "approved"; ["lng", "lat", "radius_m", "crossings", "diversion_prone", "fill_m3", "cost_usd", "start_year"].forEach(k => { if (p[k] != null) p[k] = +p[k]; }); });
+    // drop this browser's pending copies once the reviewer has approved them
+    const got = new Set(rows.map(p => String(p.id)));
+    ls.set("mine_" + table, mine(table).filter(p => !got.has(p.id) && Date.now() - Date.parse(p.created_at) < 90 * 864e5));
+    return rows;
+  },
+  async add(table, row){
+    const rec = Object.assign({ id: newId(), created_at: new Date().toISOString() }, row);
+    if (!LIVE) { const a = ls.get("demo_" + table, []); a.unshift(Object.assign({ status: "demo" }, rec)); ls.set("demo_" + table, a.slice(0, 300)); return rec; }
+    const body = JSON.stringify(Object.assign({ table: TAB[table], ref: location.origin + location.pathname }, rec));
+    // text/plain beacon: no CORS preflight, and it still goes out if the visitor leaves the page
+    const sent = navigator.sendBeacon && navigator.sendBeacon(EP, new Blob([body], { type: "text/plain;charset=utf-8" }));
+    if (!sent) await fetch(EP, { method: "POST", mode: "no-cors", headers: { "Content-Type": "text/plain;charset=utf-8" }, body, keepalive: true });
+    return rec;
+  },
+  removeDemo(table, id){ ls.set("demo_" + table, ls.get("demo_" + table, []).filter(r => r.id !== id)); }
+};
+// what this browser sent in that is still waiting for review (live mode only)
+function mine(table){ return ls.get("mine_" + table, []); }
+const remember = (table, row) => ls.set("mine_" + table, [Object.assign({ status: "pending" }, row)].concat(mine(table)).slice(0, 100));
+const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+$$("[data-mode]").forEach(el => el.textContent = LIVE
+  ? "Entries go to the project's review sheet and appear here once a reviewer approves them."
+  : "Demo mode: this copy is not connected to the review sheet yet, so entries stay in this browser only.");
+
+/* ---------------- TAB 3: your places ---------------- */
+const PTYPES = [["swim", "Swimming hole", "#2F86B5"], ["fish", "Fishing spot", "#127A7A"], ["view", "Favorite view", "#7A5EA8"], ["wild", "Wildlife", "#2F6B45"],
+  ["problem", "Problem spot", "#C2491D"], ["idea", "Restoration idea", "#C9952C"], ["story", "Memory or story", "#8C6D4F"]];
+const ptype = k => PTYPES.find(t => t[0] === k) || PTYPES[6];
+let mapP = null, pinType = "swim", pick = null, APINS = [], pinMarker = null, pickMode = false, pinFilter = new Set(PTYPES.map(t => t[0]));
+inits.places = () => {
+  if (mapP) { mapP.resize(); return; }
+  $("#pinTypes").innerHTML = PTYPES.map(t => `<button class="chip" data-t="${t[0]}" aria-pressed="${t[0] === pinType}"><i style="background:${t[2]}"></i>${t[1]}</button>`).join("");
+  $$("#pinTypes .chip").forEach(c => c.addEventListener("click", () => { pinType = c.dataset.t; $$("#pinTypes .chip").forEach(x => x.setAttribute("aria-pressed", x === c)); }));
+  $("#pinFilter").innerHTML = PTYPES.map(t => `<button class="chip" data-t="${t[0]}" aria-pressed="true"><i style="background:${t[2]}"></i>${t[1]}</button>`).join("");
+  $$("#pinFilter .chip").forEach(c => c.addEventListener("click", () => { const t = c.dataset.t; pinFilter.has(t) ? pinFilter.delete(t) : pinFilter.add(t); c.setAttribute("aria-pressed", pinFilter.has(t)); renderPins(); }));
+  mapP = baseMap("mapP");
+  mapP.ready.then(map => {
+    map.addSource("pins", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+    map.addLayer({ id: "pins", type: "circle", source: "pins", paint: { "circle-radius": 7, "circle-color": ["get", "c"], "circle-opacity": ["case", ["get", "pending"], 0.45, 1],
+      "circle-stroke-color": "#fff", "circle-stroke-width": 1.6 } });
+    map.on("click", e => { if (!pickMode) return; pick = [e.lngLat.lng, e.lngLat.lat]; pickMode = false; $("#pinHint").hidden = true;
+      if (pinMarker) pinMarker.remove(); pinMarker = new maplibregl.Marker({ color: ptype(pinType)[2] }).setLngLat(pick).addTo(map);
+      $("#bPick").textContent = "1 · Spot picked (click to move)"; validatePin(); });
+    map.on("click", "pins", e => { if (pickMode) return; const p = e.features[0].properties;
+      new maplibregl.Popup({ maxWidth: "260px" }).setLngLat(e.lngLat).setHTML(`<b style="font-family:var(--display);font-size:16px">${esc(p.title)}</b><br><span style="font-size:12px">${esc(p.typeName)}${p.pending ? " · awaiting review" : ""}</span><p style="margin:6px 0 0">${esc(p.note)}</p>`).addTo(map); });
+    refreshPins();
+  });
+};
+async function refreshPins(){
+  try { APINS = await store.list("places"); } catch (e) { $("#pinStatus").textContent = "The shared map can't be reached right now. Try again in a little while."; }
+  renderPins();
+}
+$("#bPick").addEventListener("click", () => { pickMode = true; $("#pinHint").hidden = false; });
+["pTitle", "pOk"].forEach(id => $("#" + id).addEventListener("input", validatePin)); $("#pOk").addEventListener("change", validatePin);
+function validatePin(){ $("#bSave").disabled = !(pick && $("#pTitle").value.trim() && $("#pOk").checked); }
+$("#bSave").addEventListener("click", async () => {
+  const done = () => { $("#pTitle").value = ""; $("#pNote").value = ""; $("#pName").value = ""; $("#pOk").checked = false; pick = null;
+    if (pinMarker) pinMarker.remove(); $("#bPick").textContent = "1 · Pick the spot on the map"; validatePin(); };
+  if ($("#pWeb").value) { $("#pinStatus").textContent = "Thanks, it's in the review queue."; done(); return; }   // bot trap
+  const row = { kind: pinType, title: $("#pTitle").value.trim().slice(0, 80), note: $("#pNote").value.trim().slice(0, 600) || null,
+    display_name: $("#pName").value.trim().slice(0, 60) || null, lng: +pick[0].toFixed(5), lat: +pick[1].toFixed(5) };
+  $("#bSave").disabled = true; $("#pinStatus").textContent = "Sending…";
+  try {
+    const rec = await store.add("places", row);
+    if (LIVE) remember("places", rec);
+    $("#pinStatus").textContent = LIVE ? "Thanks. It will show on the map once a reviewer approves it." : "Saved in this browser (demo mode).";
+    done(); refreshPins();
+  } catch (e) { $("#pinStatus").textContent = "Couldn't send it. Check the connection and try again."; validatePin(); }
+});
+function renderPins(){
+  const pend = LIVE ? mine("places").map(p => Object.assign({ pending: true }, p)) : [];
+  const list = APINS.concat(pend).filter(p => pinFilter.has(p.kind)).sort((a, b) => (b.created_at || "").localeCompare(a.created_at || ""));
+  if (mapP && mapP.getSource("pins")) mapP.getSource("pins").setData({ type: "FeatureCollection", features: list.map(p => ({ type: "Feature",
+    geometry: { type: "Point", coordinates: [p.lng, p.lat] }, properties: { c: ptype(p.kind)[2], title: p.title, note: p.note || "", typeName: ptype(p.kind)[1], pending: !!p.pending } })) });
+  $("#pinList").innerHTML = list.length ? list.map(p => { const t = ptype(p.kind);
+    return `<li><span class="m"><i style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${t[2]};margin-right:6px"></i>${esc(t[1])} · ${esc(p.display_name || "A community member")}${p.pending ? ' · <span class="tag">awaiting review</span>' : p.status === "demo" ? ' · <span class="tag">demo</span>' : ""}</span>
+    <span class="t">${esc(p.title)}</span>${p.note ? `<span style="font-size:13.5px">${esc(p.note)}</span>` : ""}
+    <span style="display:flex;gap:8px"><button class="btn ghost" data-fly="${p.lng},${p.lat}">Show on map</button>${p.status === "demo" ? `<button class="btn ghost" data-del="${esc(p.id)}">Remove</button>` : ""}</span></li>`; }).join("")
+    : `<li class="empty">No places on the map yet. Pick a type, click <b>Pick the spot</b>, and be the first to add the place you love on this river.</li>`;
+  $$("#pinList [data-fly]").forEach(b => b.addEventListener("click", () => { const [x, y] = b.dataset.fly.split(",").map(Number); mapP.flyTo({ center: [x, y], zoom: 14, duration: reduced ? 0 : 900 }); }));
+  $$("#pinList [data-del]").forEach(b => b.addEventListener("click", () => { store.removeDemo("places", b.dataset.del); refreshPins(); }));
+}
+
+/* ---------------- TAB 4: road projects ---------------- */
+let mapR = null, XS = null, circ = null, drawMode = null, APROJ = [], sel = null;
+inits.projects = () => {
+  if (mapR) { mapR.resize(); return; }
+  mapR = baseMap("mapR");
+  mapR.ready.then(async map => {
+    const [xs, rm, rl, ws] = await Promise.all([load("crossings.json"), load("roads_mapped.json"), load("roads_lidar_only.json"), load("watersheds.json")]);
+    XS = xs;
+    map.addSource("rm", { type: "geojson", data: rm }); map.addSource("rl", { type: "geojson", data: rl });
+    map.addLayer({ id: "rm", type: "line", source: "rm", paint: { "line-color": "#4A4A4A", "line-width": 0.8, "line-opacity": 0.7 } });
+    map.addLayer({ id: "rl", type: "line", source: "rl", paint: { "line-color": "#4A4A4A", "line-width": 0.8, "line-opacity": 0.7 } });
+    map.addSource("xs", { type: "geojson", data: xsGeo(xs) });
+    map.addLayer({ id: "xs", type: "circle", source: "xs", paint: { "circle-radius": ["interpolate", ["linear"], ["zoom"], 10, ["interpolate", ["linear"], ["get", "f"], 0, 1.4, 1500, 4.5], 14, ["interpolate", ["linear"], ["get", "f"], 0, 3, 1500, 11]],
+      "circle-color": ["case", ["==", ["get", "d"], 1], "#A1302B", "#FFFFFF"], "circle-stroke-color": "#2B2B2B", "circle-stroke-width": 0.5 } });
+    map.addSource("circ", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+    map.addLayer({ id: "circ-f", type: "fill", source: "circ", paint: { "fill-color": "#E0A526", "fill-opacity": 0.16 } });
+    map.addLayer({ id: "circ-c", type: "line", source: "circ", paint: { "line-color": "#FFFFFF", "line-width": 5, "line-opacity": 0.85 } });
+    map.addLayer({ id: "circ-l", type: "line", source: "circ", paint: { "line-color": "#B7791F", "line-width": 2.6, "line-dasharray": [2, 1] } });
+    map.addSource("prj", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+    map.addLayer({ id: "prj", type: "line", source: "prj", paint: { "line-color": "#2E3A40", "line-width": 1.4, "line-opacity": 0.7 } });
+    const dh = ws.features.find(f => f.properties.name === "Deep Hollow Creek"); const bb = bbox(dh.geometry);
+    setCircle([(bb[0][0] + bb[1][0]) / 2, (bb[0][1] + bb[1][1]) / 2], 900, true);
+    map.fitBounds([[bb[0][0] - 0.02, bb[0][1] - 0.02], [bb[1][0] + 0.02, bb[1][1] + 0.02]], { duration: 0 });
+    map.on("click", e => {
+      if (drawMode === "center") { setCircle([e.lngLat.lng, e.lngLat.lat], +$("#rad").value, false); drawMode = "radius"; $("#drawHint").textContent = "Move to size the circle, click to finish (or use the slider)"; return; }
+      if (drawMode === "radius") { drawMode = null; $("#drawHint").hidden = true; }
+    });
+    map.on("mousemove", e => { if (drawMode !== "radius" || !circ) return; const r = dist(circ.c, [e.lngLat.lng, e.lngLat.lat]); setCircle(circ.c, Math.max(150, Math.min(4000, r)), false); $("#rad").value = Math.round(circ.r); });
+    refreshProj();
+  });
+};
+async function refreshProj(){
+  try { APROJ = await store.list("project_sketches"); } catch (e) { $("#projStatus").textContent = "The sketch list can't be reached right now."; }
+  renderProj();
+}
+function dist(a, b){ const k = Math.PI / 180, x = (b[0] - a[0]) * k * Math.cos((a[1] + b[1]) / 2 * k), y = (b[1] - a[1]) * k; return Math.sqrt(x * x + y * y) * 6371000; }
+function ring(c, r){ const pts = []; for (let i = 0; i <= 72; i++) { const t = i / 72 * 2 * Math.PI; pts.push([c[0] + r * Math.cos(t) / (111320 * Math.cos(c[1] * Math.PI / 180)), c[1] + r * Math.sin(t) / 110540]); } return pts; }
+function setCircle(c, r, example){
+  circ = { c, r }; $("#exTag").hidden = !example; $("#radV").textContent = (r / 1000).toFixed(2) + " km";
+  mapR.getSource("circ").setData({ type: "FeatureCollection", features: [{ type: "Feature", geometry: { type: "Polygon", coordinates: [ring(c, r)] }, properties: {} }] });
+  const inside = XS.filter(x => dist(c, [x[0], x[1]]) <= r);
+  sel = { n: inside.length, cul: inside.filter(x => x[2] === "c").length, uni: inside.filter(x => x[2] === "u").length,
+    div: inside.filter(x => x[3] === 1).length, fill: inside.reduce((s, x) => s + x[4], 0), deb: inside.filter(x => x[5] === 3).length };
+  $("#selBig").innerHTML = `<div><b class="num">${fmt(sel.n)}</b><span>crossings inside</span></div><div><b class="num">${fmt(sel.div)}</b><span>could divert</span></div><div><b class="num">${fmt(sel.fill)}</b><span>m³ of fill</span></div>`;
+  calc();
+}
+$("#rad").addEventListener("input", () => { if (circ) setCircle(circ.c, +$("#rad").value, !$("#exTag").hidden); });
+$("#bDraw").addEventListener("click", () => { drawMode = "center"; $("#drawHint").hidden = false; $("#drawHint").textContent = "Click the center of the project area"; });
+["cCul", "cDip", "cShare", "cFill", "cOH"].forEach(id => $("#" + id).addEventListener("input", calc));
+$("#prYear").addEventListener("change", () => renderProj());
+const val = id => Math.max(0, +$("#" + id).value || 0);
+function cost(s){
+  const a = s.cul * val("cCul"), b = s.div * val("cDip"), c = s.fill * val("cShare") / 100 * val("cFill"); const oh = (a + b + c) * val("cOH") / 100;
+  return { a, b, c, oh, tot: a + b + c + oh };
+}
+function calc(){
+  if (!sel) return; const k = cost(sel);
+  $("#costTot").textContent = money(k.tot);
+  const parts = [[k.a, "var(--water)", "culverts"], [k.b, "var(--fire)", "dips"], [k.c, "var(--rust)", "fill removal"], [k.oh, "var(--muted)", "design"]];
+  $("#costStack").innerHTML = k.tot ? parts.map(p => `<span title="${p[2]}" style="width:${p[0] / k.tot * 100}%;background:${p[1]}"></span>`).join("") : "";
+  $("#costNote").textContent = `${fmt(sel.cul)} culverts, ${fmt(sel.uni)} unimproved crossings, ${fmt(sel.deb)} on high debris-flow hazard channels. Bars: culverts, dips, fill removal, design. Unit costs are placeholders, not bids.`;
+  if (!APROJ.length && !(LIVE && mine("project_sketches").length)) chart([]);
+}
+$("#bSaveProj").addEventListener("click", async () => {
+  if (!circ || !sel) return;
+  if ($("#prWeb").value) { $("#projStatus").textContent = "Thanks, it's in the review queue."; return; }   // bot trap
+  const k = cost(sel);
+  const row = { name: ($("#prName").value.trim() || "Unnamed sketch").slice(0, 70), lead: $("#prLead").value.trim().slice(0, 70) || null, start_year: +$("#prYear").value,
+    lng: +circ.c[0].toFixed(5), lat: +circ.c[1].toFixed(5), radius_m: Math.round(circ.r), crossings: sel.n, diversion_prone: sel.div, fill_m3: Math.round(sel.fill),
+    cost_usd: Math.round(k.tot), unit_costs: { culvert: val("cCul"), dip: val("cDip"), close_share_pct: val("cShare"), fill_per_m3: val("cFill"), overhead_pct: val("cOH") } };
+  $("#projStatus").textContent = "Sending…";
+  try {
+    const rec = await store.add("project_sketches", row);
+    if (LIVE) remember("project_sketches", rec);
+    $("#projStatus").textContent = LIVE ? "Thanks. It joins the forecast once a reviewer approves it." : "Saved in this browser (demo mode)."; $("#prName").value = "";
+    refreshProj();
+  } catch (e) { $("#projStatus").textContent = "Couldn't send it. Check the connection and try again."; }
+});
+function renderProj(){
+  const pend = LIVE ? mine("project_sketches").map(p => Object.assign({ pending: true }, p)) : [];
+  const L = APROJ.concat(pend).sort((a, b) => a.start_year - b.start_year || (b.created_at || "").localeCompare(a.created_at || ""));
+  if (mapR && mapR.getSource("prj")) mapR.getSource("prj").setData({ type: "FeatureCollection", features: L.map(p => ({ type: "Feature", geometry: { type: "LineString", coordinates: ring([p.lng, p.lat], p.radius_m) }, properties: {} })) });
+  $("#projList").innerHTML = L.length ? L.map(p => `<li><span class="m">${p.start_year}${p.lead ? " · " + esc(p.lead) : ""}${p.pending ? ' · <span class="tag">awaiting review</span>' : p.status === "demo" ? ' · <span class="tag">demo</span>' : ""}</span><span class="t">${esc(p.name)}</span>
+    <span style="font-size:13.5px" class="num">${fmt(p.crossings)} crossings · ${fmt(p.diversion_prone)} could divert · ${fmt(p.fill_m3)} m³ fill · <b>${money(p.cost_usd)}</b></span>
+    <span style="display:flex;gap:8px"><button class="btn ghost" data-go2="${p.lng},${p.lat},${p.radius_m}">Show</button>${p.status === "demo" ? `<button class="btn ghost" data-delp="${esc(p.id)}">Remove</button>` : ""}</span></li>`).join("")
+    : `<li class="empty">No sketches yet. Draw an area, give it a name and start year, and send it in. Until then the forecast shows the example area as a draft.</li>`;
+  $$("#projList [data-go2]").forEach(b => b.addEventListener("click", () => { const [x, y, r] = b.dataset.go2.split(",").map(Number); setCircle([x, y], r, false); $("#rad").value = r; mapR.flyTo({ center: [x, y], zoom: 13, duration: reduced ? 0 : 900 }); }));
+  $$("#projList [data-delp]").forEach(b => b.addEventListener("click", () => { store.removeDemo("project_sketches", b.dataset.delp); refreshProj(); }));
+  chart(L);
+}
+function chart(L){
+  const years = [2027, 2028, 2029, 2030, 2031];
+  const sum = (y, f) => L.filter(p => p.start_year === y && f(p)).reduce((s, p) => s + p.cost_usd, 0);
+  let solid = years.map(y => sum(y, p => !p.pending)), dash = years.map(y => sum(y, p => p.pending)), draft = false;
+  if (!L.length && sel) { draft = true; solid = years.map(() => 0); dash = years.map(y => y === +$("#prYear").value ? cost(sel).tot : 0); }
+  const W = 560, H = 230, l = 56, b = 30, t = 14, max = Math.max(1, ...years.map((y, i) => solid[i] + dash[i])) * 1.15;
+  const step = [1e4, 2.5e4, 5e4, 1e5, 2.5e5, 5e5, 1e6, 2.5e6, 5e6, 1e7, 2.5e7].find(s => max / s <= 5) || 5e7;
+  const Y = v => t + (H - t - b) * (1 - v / max), bw = (W - l - 10) / years.length;
+  let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Funding need by start year">`;
+  for (let v = 0; v <= max; v += step) s += `<line x1="${l}" x2="${W - 6}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--rule)"/><text x="${l - 6}" y="${Y(v) + 4}" font-size="11" text-anchor="end" fill="var(--muted)">${v ? money(v) : "$0"}</text>`;
+  years.forEach((yr, i) => { const x = l + i * bw + bw * 0.18, w = bw * 0.64, a = solid[i], d = dash[i];
+    if (a) s += `<rect x="${x}" y="${Y(a)}" width="${w}" height="${Y(0) - Y(a)}" rx="3" fill="var(--rust)"/>`;
+    if (d) s += `<rect x="${x}" y="${Y(a + d)}" width="${w}" height="${Y(a) - Y(a + d)}" rx="3" fill="none" stroke="var(--rust)" stroke-dasharray="5 3"/>`;
+    if (a + d) s += `<text x="${x + w / 2}" y="${Y(a + d) - 6}" font-size="12" text-anchor="middle" fill="var(--ink)">${money(a + d)}</text>`;
+    s += `<text x="${x + w / 2}" y="${H - 10}" font-size="12" text-anchor="middle" fill="var(--muted)">${yr}</text>`; });
+  s += "</svg>";
+  const tot = L.reduce((a, p) => a + p.cost_usd, 0);
+  $("#fcChart").innerHTML = s + `<p class="note" style="margin:6px 0 0">${draft ? "Draft: the current area only (dashed). Sent-in sketches replace it." : `${L.length} sketch${L.length === 1 ? "" : "es"}, ${money(tot)} in all${pend_note(L)}.`} Placeholder unit costs; a planning aid, not an estimate.</p>`;
+}
+const pend_note = L => L.some(p => p.pending) ? "; dashed bars are your sketches awaiting review" : "";
+
+show(location.hash.slice(1));
+})();
+</script>
+</body>
+</html>

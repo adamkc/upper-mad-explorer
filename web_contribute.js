@@ -106,11 +106,9 @@ inits.projects = () => {
   if (mapR) { mapR.resize(); return; }
   mapR = baseMap("mapR");
   mapR.ready.then(async map => {
-    const [xs, rm, rl, ws] = await Promise.all([load("crossings.json"), load("roads_mapped.json"), load("roads_lidar_only.json"), load("watersheds.json")]);
+    const [xs, rd, ws] = await Promise.all([load("crossings.json"), load("roads.json"), load("watersheds.json")]);
     XS = xs;
-    map.addSource("rm", { type: "geojson", data: rm }); map.addSource("rl", { type: "geojson", data: rl });
-    map.addLayer({ id: "rm", type: "line", source: "rm", paint: { "line-color": "#4A4A4A", "line-width": 0.8, "line-opacity": 0.7 } });
-    map.addLayer({ id: "rl", type: "line", source: "rl", paint: { "line-color": "#4A4A4A", "line-width": 0.8, "line-opacity": 0.7 } });
+    addRoads(map, rd, undefined, 0.75);
     map.addSource("xs", { type: "geojson", data: xsGeo(xs) });
     map.addLayer({ id: "xs", type: "circle", source: "xs", paint: { "circle-radius": ["interpolate", ["linear"], ["zoom"], 10, ["interpolate", ["linear"], ["get", "f"], 0, 1.4, 1500, 4.5], 14, ["interpolate", ["linear"], ["get", "f"], 0, 3, 1500, 11]],
       "circle-color": ["case", ["==", ["get", "d"], 1], "#A1302B", "#FFFFFF"], "circle-stroke-color": "#2B2B2B", "circle-stroke-width": 0.5 } });
@@ -141,26 +139,33 @@ function setCircle(c, r, example){
   circ = { c, r }; $("#exTag").hidden = !example; $("#radV").textContent = (r / 1000).toFixed(2) + " km";
   mapR.getSource("circ").setData({ type: "FeatureCollection", features: [{ type: "Feature", geometry: { type: "Polygon", coordinates: [ring(c, r)] }, properties: {} }] });
   const inside = XS.filter(x => dist(c, [x[0], x[1]]) <= r);
-  sel = { n: inside.length, cul: inside.filter(x => x[2] === "c").length, uni: inside.filter(x => x[2] === "u").length,
-    div: inside.filter(x => x[3] === 1).length, fill: inside.reduce((s, x) => s + x[4], 0), deb: inside.filter(x => x[5] === 3).length };
-  $("#selBig").innerHTML = `<div><b class="num">${fmt(sel.n)}</b><span>crossings inside</span></div><div><b class="num">${fmt(sel.div)}</b><span>could divert</span></div><div><b class="num">${fmt(sel.fill)}</b><span>m³ of fill</span></div>`;
+  // x[7] = 1 when the crossing sits on a road the lidar classes as closed or an old road now used as a trail
+  const shut = inside.filter(x => x[7] === 1), open = inside.filter(x => x[7] !== 1);
+  sel = { n: inside.length, cul: open.filter(x => x[2] === "c").length, uni: open.filter(x => x[2] === "u").length, div: open.filter(x => x[3] === 1).length,
+    fillOpen: open.reduce((s, x) => s + x[4], 0), shut: shut.length, fillShut: shut.reduce((s, x) => s + x[4], 0),
+    divAll: inside.filter(x => x[3] === 1).length, fill: inside.reduce((s, x) => s + x[4], 0), deb: inside.filter(x => x[5] === 3).length };
+  $("#selBig").innerHTML = `<div><b class="num">${fmt(sel.n)}</b><span>crossings inside</span></div><div><b class="num">${fmt(sel.divAll)}</b><span>could divert</span></div><div><b class="num">${fmt(sel.fill)}</b><span>m³ of fill</span></div>`;
   calc();
 }
 $("#rad").addEventListener("input", () => { if (circ) setCircle(circ.c, +$("#rad").value, !$("#exTag").hidden); });
 $("#bDraw").addEventListener("click", () => { drawMode = "center"; $("#drawHint").hidden = false; $("#drawHint").textContent = "Click the center of the project area"; });
-["cCul", "cDip", "cShare", "cFill", "cOH"].forEach(id => $("#" + id).addEventListener("input", calc));
+["cCul", "cFord", "cDip", "cShare", "cFill", "cOH"].forEach(id => $("#" + id).addEventListener("input", calc));
 $("#prYear").addEventListener("change", () => renderProj());
 const val = id => Math.max(0, +$("#" + id).value || 0);
 function cost(s){
-  const a = s.cul * val("cCul"), b = s.div * val("cDip"), c = s.fill * val("cShare") / 100 * val("cFill"); const oh = (a + b + c) * val("cOH") / 100;
-  return { a, b, c, oh, tot: a + b + c + oh };
+  const v = id => Math.max(0, +$("#" + id).value || 0), keep = 1 - Math.min(100, v("cShare")) / 100;
+  // each crossing gets one treatment: kept-open ones are upsized, piped or armored (plus a dip where they could divert),
+  // and crossings on roads being closed have their fill dug out
+  const a = s.cul * keep * v("cCul"), u = s.uni * keep * v("cFord"), b = s.div * keep * v("cDip");
+  const c = (s.fillShut + s.fillOpen * (1 - keep)) * v("cFill"); const oh = (a + u + b + c) * v("cOH") / 100;
+  return { a, u, b, c, oh, tot: a + u + b + c + oh, closed: Math.round(s.shut + (s.cul + s.uni) * (1 - keep)) };
 }
 function calc(){
   if (!sel) return; const k = cost(sel);
   $("#costTot").textContent = money(k.tot);
-  const parts = [[k.a, "var(--water)", "culverts"], [k.b, "var(--fire)", "dips"], [k.c, "var(--rust)", "fill removal"], [k.oh, "var(--muted)", "design"]];
+  const parts = [[k.a, "var(--water)", "culverts"], [k.u, "var(--teal)", "unimproved crossings"], [k.b, "var(--fire)", "dips"], [k.c, "var(--rust)", "fill removal"], [k.oh, "var(--muted)", "design"]];
   $("#costStack").innerHTML = k.tot ? parts.map(p => `<span title="${p[2]}" style="width:${p[0] / k.tot * 100}%;background:${p[1]}"></span>`).join("") : "";
-  $("#costNote").textContent = `${fmt(sel.cul)} culverts, ${fmt(sel.uni)} unimproved crossings, ${fmt(sel.deb)} on high debris-flow hazard channels. Bars: culverts, dips, fill removal, design. Unit costs are placeholders, not bids.`;
+  $("#costNote").textContent = `${fmt(k.closed)} of ${fmt(sel.n)} crossings closed (${fmt(sel.shut)} already on closed or abandoned roads), the rest kept open. ${fmt(sel.deb)} sit on high debris-flow hazard channels. Bars: culverts, unimproved crossings, dips, fill removal, design. Unit costs are rough North Coast planning figures, not bids.`;
   if (!APROJ.length && !(LIVE && mine("project_sketches").length)) chart([]);
 }
 $("#bSaveProj").addEventListener("click", async () => {
@@ -168,7 +173,7 @@ $("#bSaveProj").addEventListener("click", async () => {
   if ($("#prWeb").value) { $("#projStatus").textContent = "Thanks, it's in the review queue."; return; }   // bot trap
   const k = cost(sel);
   const row = { name: ($("#prName").value.trim() || "Unnamed sketch").slice(0, 70), lead: $("#prLead").value.trim().slice(0, 70) || null, start_year: +$("#prYear").value,
-    lng: +circ.c[0].toFixed(5), lat: +circ.c[1].toFixed(5), radius_m: Math.round(circ.r), crossings: sel.n, diversion_prone: sel.div, fill_m3: Math.round(sel.fill),
+    lng: +circ.c[0].toFixed(5), lat: +circ.c[1].toFixed(5), radius_m: Math.round(circ.r), crossings: sel.n, diversion_prone: sel.divAll, fill_m3: Math.round(sel.fill),
     cost_usd: Math.round(k.tot), unit_costs: { culvert: val("cCul"), dip: val("cDip"), close_share_pct: val("cShare"), fill_per_m3: val("cFill"), overhead_pct: val("cOH") } };
   $("#projStatus").textContent = "Sending…";
   try {

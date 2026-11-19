@@ -9,7 +9,7 @@ A public web explorer for the Upper Mad River watershed assessment, prepared as 
 | `index.html` | The explorer: 3D river flight, findings map with four lenses, community places, road-project sketches and funding forecast |
 | `config.js` | One setting: the review sheet's web-app URL. Empty means demo mode |
 | `sheets/Code.gs` | The Google Apps Script that writes entries to the Sheet and serves approved ones back |
-| `data/` | Assessment layers the explorer draws (GeoJSON, fire and forest overlays, 3D terrain tile) |
+| `data/` | Assessment layers the explorer draws (GeoJSON, fire and forest overlays, the 3D terrain tile and its five layer textures, about 6 MB of them) |
 | `vendor/` | MapLibre GL JS 4.7.1 and three.js r128, with their licenses |
 | `build_web.py`, `web_contribute.js` | Rebuild `index.html` from the dashboard source (see "Rebuilding") |
 | `.nojekyll` | Tells GitHub Pages to serve the files as they are |
@@ -96,7 +96,19 @@ The page is built from `../dashboard/page_src.html`, shared with the claude.ai p
 python -X utf8 build_web.py
 ```
 
-The layers in `data/` come from the assessment's build scripts in `../dashboard/` (`build_data.py`, `build_3d.py`, `build_basin_svg.py`). Each new subwatershed (Middle Mad, then Lower Mad) runs through the same lidar toolkit and is added the same way.
+The layers in `data/` come from the assessment's build scripts in `../dashboard/`, run in WSL from `UpperMad/work/scripts`:
+
+| Script | Writes |
+|---|---|
+| `build_data.py` | watersheds, streams, crossings, floodplain zones, fire and forest overlays, headline numbers |
+| `build_roads_web.py` | `roads.json` (the ERASER network, classed by use) and each crossing's road class |
+| `build_3d.py` | the 3D terrain tile, its floodplain texture and the river path |
+| `build_3d_layers.py` | the flight's layer textures: NAIP imagery, lidar hillshade, and the stream and road lines with their paint-in times |
+| `build_basin_svg.py` | the whole-basin outline map |
+
+The 3D flight itself is `../dashboard/three_flight.js`; `splice_three.py` copies it into the page source and rebuilds both pages. Each new subwatershed (Middle Mad, then Lower Mad) runs through the same lidar toolkit and is added the same way.
+
+Sources shown in the flight: USDA NAIP imagery through the USGS National Map, and USGS 3DEP lidar (2022 and 2023 collections).
 
 ## Caveats
 

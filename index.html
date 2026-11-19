@@ -81,9 +81,18 @@ textarea{min-height:70px;resize:vertical}
 .hero .ctl{position:absolute;left:max(16px,env(safe-area-inset-left,0px));bottom:16px;display:flex;gap:8px;flex-wrap:wrap}
 .hero .ctl .btn{background:rgba(14,27,38,.82);border-color:rgba(244,241,234,.35);color:#F4F1EA}
 .hero .ctl .btn[aria-pressed="true"]{background:#F4F1EA;color:#0e1b26}
-.hero .key{position:absolute;right:max(16px,env(safe-area-inset-right,0px));bottom:16px;background:rgba(14,27,38,.78);color:#F4F1EA;font-size:12px;padding:8px 10px;border-radius:8px;display:grid;gap:4px}
-.hero .key b{display:inline-block;width:26px;height:9px;border-radius:2px;vertical-align:middle;margin-right:6px}
-.lab3d{position:absolute;transform:translate(-50%,-100%);font-family:var(--display);font-style:italic;font-size:17px;color:#F4F1EA;text-shadow:0 0 4px #0e1b26,0 0 8px #0e1b26;pointer-events:none;white-space:nowrap}
+.hero .stage{position:absolute;left:max(16px,env(safe-area-inset-left,0px));bottom:62px;max-width:min(400px,calc(100% - 32px));color:#F4F1EA;background:rgba(14,27,38,.74);padding:10px 13px;border-radius:10px;transition:opacity .45s,transform .45s}
+.hero .stage b{display:block;font-family:var(--display);font-weight:500;font-size:21px;line-height:1.15}
+.hero .stage span{display:block;font-size:13px;margin-top:3px}
+.hero .stage.off{opacity:0;transform:translateY(8px)}
+.hero .lay3d{position:absolute;right:max(16px,env(safe-area-inset-right,0px));bottom:16px;display:grid;gap:8px;justify-items:end}
+.hero .lay3d .row{display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end}
+.hero .lay3d button{font:500 12px/1 var(--ui);padding:7px 10px;border-radius:999px;border:1px solid rgba(244,241,234,.35);background:rgba(14,27,38,.82);color:#F4F1EA;cursor:pointer}
+.hero .lay3d button[aria-pressed="true"]{background:#F4F1EA;color:#0e1b26;border-color:#F4F1EA}
+.hero .leg{background:rgba(14,27,38,.78);color:#F4F1EA;font-size:12px;padding:8px 10px;border-radius:8px;display:grid;gap:3px}
+.hero .leg b{display:inline-block;width:22px;height:5px;border-radius:2px;vertical-align:middle;margin-right:7px}
+@media (max-width:700px){.hero .lay3d{bottom:60px}.hero .stage{bottom:104px}.hero .stage span{display:none}.hero .leg{display:none}}
+.lab3d{position:absolute;left:0;top:0;will-change:transform;font-family:var(--display);font-style:italic;font-size:17px;color:#F4F1EA;text-shadow:0 0 4px #0e1b26,0 0 8px #0e1b26;pointer-events:none;white-space:nowrap}
 .sec{padding-block:44px 8px;display:grid;gap:18px}
 .sec h2{font-size:clamp(26px,3vw,34px)}
 .cols2{display:grid;grid-template-columns:1.2fr 1fr;gap:28px;align-items:start}
@@ -114,6 +123,10 @@ textarea{min-height:70px;resize:vertical}
 .phase b{display:block;font-family:var(--display);font-size:19px;font-weight:500}
 
 /* map views */
+.lensbar{grid-column:1/-1;display:flex;gap:6px 8px;flex-wrap:wrap;align-items:center;padding:10px 12px;border-bottom:1px solid var(--rule);background:var(--panel)}
+.lensbar .chips{display:flex;gap:6px;flex-wrap:wrap}
+.maplegend{position:absolute;left:10px;bottom:36px;z-index:2;background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:8px 10px;max-width:min(290px,calc(100% - 70px));font-size:12px!important;box-shadow:0 2px 10px var(--shade)}
+.maplegend:empty{display:none}
 .split{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:0;border:1px solid var(--rule);border-radius:12px;overflow:hidden;background:var(--panel);margin-top:18px}
 .mapbox{position:relative;min-height:560px;height:72vh;max-height:820px;background:var(--paper)}
 .mapbox .map{position:absolute;inset:0}
@@ -212,21 +225,27 @@ textarea{min-height:70px;resize:vertical}
       <div class="cap">
         <div class="eyebrow">Mad River · river km 15 to 18</div>
         <h1>Where Barry and Van Horn creeks meet the Mad</h1>
-        <p style="margin:6px 0 0;max-width:44ch">Lidar terrain, colored by height above the river. The darkest teal sits within 2 m of the water: valley floor that could hold water again.</p>
       </div>
+      <div class="stage off" id="stage" aria-live="polite"><b></b><span></span></div>
       <div class="ctl">
-        <button class="btn" id="bFly" aria-pressed="false">Fly up the river</button>
+        <button class="btn" id="bFly" aria-pressed="false">Play</button>
         <button class="btn" id="bOrbit" aria-pressed="false">Look around</button>
-        <button class="btn" id="bReset">Reset view</button>
+        <button class="btn" id="bReset">Replay</button>
       </div>
-      <div class="key"><div><b style="background:#0F4C6E"></b>within 2 m of the river</div><div><b style="background:#5FB3A9"></b>2 to 4 m</div><div><b style="background:#EFEBD8"></b>higher ground</div></div>
+      <div class="lay3d" id="lay3d">
+        <div class="leg" id="leg3d" hidden><div id="leg3dRoads" hidden></div>
+          <div id="leg3dRem" hidden><div><b style="background:#0F4C6E"></b>within 2 m of the river</div><div><b style="background:#5FB3A9"></b>2 to 4 m</div></div></div>
+        <div class="row" role="group" aria-label="Layers">
+          <button data-l="img" aria-pressed="true">Imagery</button><button data-l="lidar" aria-pressed="false">Lidar</button><button data-l="streams" aria-pressed="false">Streams</button><button data-l="roads" aria-pressed="false">Roads</button><button data-l="rem" aria-pressed="false">Floodplain</button>
+        </div>
+      </div>
     </div>
 
     <div class="sec">
       <div class="slot">
         <svg viewBox="0 0 120 90" aria-hidden="true"><circle cx="60" cy="45" r="38" fill="none" stroke="currentColor" stroke-width="1.5" opacity=".5"/><ellipse cx="60" cy="45" rx="38" ry="12" fill="none" stroke="currentColor" stroke-width="1.2" opacity=".5"/><ellipse cx="60" cy="45" rx="14" ry="38" fill="none" stroke="currentColor" stroke-width="1.2" opacity=".5"/><circle cx="60" cy="45" r="4" fill="currentColor"/></svg>
         <div><span class="tag">Coming soon</span><h3 style="font-size:22px;margin:4px 0">Stand on the gravel bar</h3>
-        <p class="note" style="margin:0">This spot will get a 360° photo dome from the bar below the Van Horn confluence, and a slow drone flight up the river from Ruth Lake. Until then, the 3D lidar above stands in for both: press <b>Fly up the river</b>.</p></div>
+        <p class="note" style="margin:0">This spot will get a 360° photo dome from the bar below the Van Horn confluence, and a real drone flight up the river. Until then, the lidar flight above stands in for both: press <b>Replay</b> to watch it again.</p></div>
       </div>
     </div>
 
@@ -234,7 +253,7 @@ textarea{min-height:70px;resize:vertical}
       <div class="prose">
         <div class="eyebrow">About the project</div>
         <h2 style="margin:4px 0 12px">A new map of an old river</h2>
-        <p class="lede">In 2022, aircraft measured every square meter of the Upper Mad, 334 km² of mountains above Ruth Lake, with laser pulses that pass through the trees to the ground.</p>
+        <p class="lede">In 2022 and 2023, aircraft measured every square meter of the Upper Mad, 334 km² of mountains above Ruth Lake, with laser pulses that pass through the trees to the ground.</p>
         <p>We used that lidar to map what nobody had mapped all at once: every road, every place a road crosses a stream, the valley floors where the river could spread out again, and the forest the 2020 August Complex left standing. It burned 95% of the basin.</p>
         <p>Ruth Lake, behind Matthews Dam, stores water for the Humboldt Bay Municipal Water District. What washes off these slopes ends up there. That makes this watershed everyone's business, including people who will never drive its roads.</p>
         <p>This is the first piece of a larger assessment. The same toolkit will next cover the whole Mad River basin, down to the ocean.</p>
@@ -290,10 +309,10 @@ textarea{min-height:70px;resize:vertical}
     <div class="sec">
       <div class="eyebrow">By the numbers</div>
       <div class="stats">
-        <div class="stat"><b class="num">65%</b><span>of the 1,556 km of road in the lidar is on no public map</span></div>
+        <div class="stat"><b class="num">53%</b><span>of the 1,532 km of road in the lidar is on no public map</span></div>
         <div class="stat"><b class="num">7,567</b><span>road–stream crossings; 3 in 4 could send a creek down the road if they plug</span></div>
         <div class="stat"><b class="num">1.7 M m³</b><span>of road fill sits at crossings, about 170,000 dump-truck loads</span></div>
-        <div class="stat"><b class="num">447 ha</b><span>of valley floor within 2 m of a channel, mostly on public land</span></div>
+        <div class="stat"><b class="num">447 ha</b><span>of valley floor within 2 m of a channel; 58% of all valley floor is private land</span></div>
         <div class="stat"><b class="num">5,754 ha</b><span>of forest the 2020 fire left standing</span></div>
       </div>
     </div>
@@ -362,15 +381,15 @@ textarea{min-height:70px;resize:vertical}
     <div class="sec" style="padding-bottom:0">
       <div class="eyebrow">What we found</div>
       <h2>Four lenses on the same mountains</h2>
-      <div class="chips" id="themeChips">
+    </div>
+    <div class="split">
+      <div class="lensbar chips" id="themeChips" role="group" aria-label="Lens">
         <button class="chip" data-theme="forest" aria-pressed="true"><i style="background:var(--forest)"></i>Forest to protect</button>
         <button class="chip" data-theme="roads" aria-pressed="false"><i style="background:var(--rust)"></i>Roads</button>
         <button class="chip" data-theme="floodplain" aria-pressed="false"><i style="background:var(--teal)"></i>Floodplain connections</button>
         <button class="chip" data-theme="crossings" aria-pressed="false"><i style="background:var(--fire)"></i>Crossings at risk</button>
       </div>
-    </div>
-    <div class="split">
-      <div class="mapbox"><div class="map" id="mapF"></div><div id="wcard"></div></div>
+      <div class="mapbox"><div class="map" id="mapF"></div><div class="maplegend legend" id="lensLegend"></div><div id="wcard"></div></div>
       <aside class="side" id="themePanel" aria-live="polite"></aside>
     </div>
   </div>
@@ -385,6 +404,7 @@ textarea{min-height:70px;resize:vertical}
       <p class="prose" style="margin:0;max-width:70ch">Data can find roads; it can't find the swimming hole your family has used for fifty years or the bend where the bank keeps falling in. Pin the places you know and care about. They help us decide where restoration should start, and where it should be careful.</p>
     </div>
     <div class="split">
+      <div class="lensbar"><span class="eyebrow">Show</span><div class="chips" id="pinFilter" role="group" aria-label="Place types shown"></div></div>
       <div class="mapbox"><div class="map" id="mapP"></div><div class="hint" id="pinHint" hidden>Click the map where the place is</div></div>
       <aside class="side">
         <div class="form" id="pinForm">
@@ -401,7 +421,6 @@ textarea{min-height:70px;resize:vertical}
           <div class="mode" data-mode></div>
         </div>
         <div class="warnbox"><b>Before you pin.</b> Please don't share home addresses or sensitive cultural sites; share those with tribal partners directly. Entries appear on the map after a reviewer approves them.</div>
-        <div><div class="eyebrow" style="margin-bottom:6px">On the map</div><div class="chips" id="pinFilter"></div></div>
         <ul class="plist" id="pinList"></ul>
       </aside>
     </div>
@@ -426,11 +445,12 @@ textarea{min-height:70px;resize:vertical}
         <div>
           <div class="eyebrow" style="margin-bottom:6px">Treatment and cost <span class="tag">planning placeholders</span></div>
           <div class="costs">
-            <div class="line"><span>Upgrade each culvert ($ each)</span><input type="number" id="cCul" value="18000" min="0" step="500"></div>
-            <div class="line"><span>Critical dip at each diversion-prone crossing ($ each)</span><input type="number" id="cDip" value="3500" min="0" step="100"></div>
-            <div class="line"><span>Share of crossings on roads to close (%)</span><input type="number" id="cShare" value="30" min="0" max="100" step="5"></div>
-            <div class="line"><span>Dig out crossing fill on closed roads ($ per m³)</span><input type="number" id="cFill" value="35" min="0" step="1"></div>
-            <div class="line"><span>Design, permits, oversight (%)</span><input type="number" id="cOH" value="25" min="0" max="200" step="5"></div>
+            <div class="line"><span>Also close this share of the open roads' crossings (%)</span><input type="number" id="cShare" value="20" min="0" max="100" step="5"></div>
+            <div class="line"><span>Upsize a culvert on a road that stays open ($ each)</span><input type="number" id="cCul" value="30000" min="0" step="500"></div>
+            <div class="line"><span>Pipe or armor an unimproved crossing that stays open ($ each)</span><input type="number" id="cFord" value="12000" min="0" step="500"></div>
+            <div class="line"><span>Critical dip where a kept crossing could divert ($ each)</span><input type="number" id="cDip" value="2500" min="0" step="100"></div>
+            <div class="line"><span>Dig out crossing fill on closed roads ($ per m³)</span><input type="number" id="cFill" value="20" min="0" step="1"></div>
+            <div class="line"><span>Design, permits, oversight (%)</span><input type="number" id="cOH" value="20" min="0" max="200" step="5"></div>
           </div>
           <div class="stack" id="costStack" style="margin-top:10px"></div>
           <div class="total"><span>First-pass cost</span><b class="num" id="costTot">$0</b></div>
@@ -552,14 +572,56 @@ function initThree(){
   if (!window.THREE) { canvas.hidden = true; return { resize(){} }; }
   let renderer;
   try { renderer = new THREE.WebGLRenderer({ canvas, antialias: true }); } catch (e) { canvas.hidden = true; return { resize(){} }; }
-  renderer.setPixelRatio(Math.min(2, devicePixelRatio));
-  const scene = new THREE.Scene(); scene.background = new THREE.Color("#0e1b26"); scene.fog = new THREE.Fog("#0e1b26", 4200, 9000);
+  const SKY = new THREE.Color("#0e1b26");
+  const scene = new THREE.Scene(); scene.background = SKY;
   const cam = new THREE.PerspectiveCamera(42, 1, 10, 20000);
   const ctl = new THREE.OrbitControls(cam, canvas); ctl.enableDamping = true; ctl.maxPolarAngle = 1.35; ctl.enabled = false;
-  const EX = 1.35; let T = null, FP = null, flying = false, t0 = 0, mesh;
-  const DUR = 110000, ALT = 60, AHEAD = 850, SPAN = 10;   // flight length (ms), height above the river (m), look-ahead (m), sample spacing (m)
-  const lookT = new THREE.Vector3(), from = { p: new THREE.Vector3(), q: new THREE.Vector3() };
-  // even spacing along the line, then a Gaussian smooth (ends mirrored so the line keeps its heading)
+  ctl.minDistance = 250; ctl.maxDistance = 6500;
+  const EX = 1.35, SPAN = 10, DUR = 130000;   // vertical exaggeration, path sample spacing (m), flight length (ms)
+  // ---- the flight's story: layer changes keyed to the share of the flight flown ----
+  const STAGES = [
+    { at: 0.00, t: "Aerial imagery", s: "What a plane sees: the river, two years after the 2020 August Complex fire." },
+    { at: 0.08, t: "Lidar: the bare ground", s: "Laser pulses that reach the soil strip away the trees and show the shape of the land." },
+    { at: 0.18, t: "Streams", s: "Traced from the lidar, filling in from the river up into the side creeks." },
+    { at: 0.34, t: "Roads the lidar found", s: "" },
+    { at: 0.66, t: "Valley floor", s: "Teal ground sits within 2 m of the river: room for the water to spread out again." },
+    { at: 0.82, t: "Look around", s: "Drag to look around, or switch the layers on and off below." } ];
+  const ramp = (a, b, x) => Math.max(0, Math.min(1, (x - a) / (b - a)));
+  const auto = f => ({ wipe: ramp(0.08, 0.16, f), streams: ramp(0.18, 0.34, f), roads: ramp(0.34, 0.62, f), rem: ramp(0.66, 0.74, f) });
+  const U = { tImg: { value: null }, tLid: { value: null }, tRem: { value: null }, tRoad: { value: null }, tStr: { value: null },
+    uWipe: { value: 0 }, uStream: { value: 0 }, uStreamA: { value: 1 }, uRoad: { value: 0 }, uRoadA: { value: 1 }, uRem: { value: 0 },
+    uA: { value: new THREE.Vector2() }, uDir: { value: new THREE.Vector2(1, 0) }, uLen: { value: 1 },
+    uPal: { value: [0, 1, 2, 3, 4, 5].map(() => new THREE.Color("#E8A33D")) }, fogC: { value: SKY }, fogN: { value: 3400 }, fogF: { value: 8200 } };
+  const VS = `varying vec2 vUv; varying vec3 vW; varying float vD;
+    void main(){ vUv = uv; vec4 w = modelMatrix * vec4(position, 1.0); vW = w.xyz; vec4 m = viewMatrix * w; vD = -m.z; gl_Position = projectionMatrix * m; }`;
+  const FS = `uniform sampler2D tImg, tLid, tRem, tRoad, tStr; uniform float uWipe, uStream, uStreamA, uRoad, uRoadA, uRem, uLen, fogN, fogF;
+    uniform vec2 uA, uDir; uniform vec3 uPal[6]; uniform vec3 fogC; varying vec2 vUv; varying vec3 vW; varying float vD;
+    vec3 pal(float id){ vec3 c = uPal[1]; for (int i = 0; i < 6; i++) { if (abs(float(i) - id) < 0.5) c = uPal[i]; } return c; }
+    void main(){
+      vec3 lid = mix(texture2D(tLid, vUv).rgb, texture2D(tRem, vUv).rgb, uRem);
+      float w = dot(vW.xz - uA, uDir) / uLen, f = mix(-0.25, 1.25, uWipe);
+      vec3 c = mix(texture2D(tImg, vUv).rgb, lid, smoothstep(f + 0.01, f - 0.01, w));
+      c += vec3(0.85, 0.95, 1.0) * 0.55 * clamp(1.0 - abs(w - f) / 0.008, 0.0, 1.0) * step(0.001, uWipe) * step(uWipe, 0.999);
+      vec3 s = texture2D(tStr, vUv).rgb;
+      if (s.g > 0.002) { float on = clamp((uStream - s.g) / 0.012, 0.0, 1.0), hot = on * (1.0 - clamp((uStream - s.g) / 0.05, 0.0, 1.0));
+        c = mix(c, mix(vec3(0.26, 0.58, 0.86), vec3(0.75, 0.92, 1.0), hot), s.r * on * uStreamA); }
+      vec3 r = texture2D(tRoad, vUv).rgb;
+      if (r.g > 0.002) { float on = clamp((uRoad - r.g) / 0.012, 0.0, 1.0), hot = on * (1.0 - clamp((uRoad - r.g) / 0.05, 0.0, 1.0));
+        vec3 rc = pal(floor(r.b * 255.0 / 40.0 + 0.5) - 1.0);
+        c = mix(c, c * 0.35, r.r * on * uRoadA * 0.5);                        // a soft dark edge under the line
+        c = mix(c, mix(rc, vec3(1.0, 0.97, 0.85), hot * 0.7), clamp(r.r * 1.6 - 0.25, 0.0, 1.0) * on * uRoadA); }
+      gl_FragColor = vec4(mix(c, fogC, smoothstep(fogN, fogF, vD)), 1.0); }`;
+  let FL = null, labels = [], tj = null;
+  let playing = false, manual = false, t0 = 0, ft = 0, raf = 0, last = 0, visible = true, settle = 0;
+  const want = { lidar: 1, streams: 1, roads: 1, rem: 1 };                       // manual layer choice
+  const cur = { wipe: 0, streams: 0, sA: 1, roads: 0, rA: 1, rem: 0 };
+  const lookT = new THREE.Vector3();
+  function resize(){
+    const w = hero.clientWidth, h = hero.clientHeight; if (!w || !h) return;
+    renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2, Math.sqrt(2.4e6 / (w * h))));   // cap the pixel count on big screens
+    renderer.setSize(w, h, false); cam.aspect = w / h; cam.updateProjectionMatrix(); kick();
+  }
+  // even spacing along a line, then a Gaussian smooth (ends mirrored so the line keeps its heading)
   function resamp(P, d){ const o = [P[0].slice()]; let carry = 0;
     for (let i = 1; i < P.length; i++){ const a = P[i - 1], b = P[i], seg = Math.hypot(b[0] - a[0], b[1] - a[1]); if (!seg) continue; let t = d - carry;
       for (; t <= seg; t += d) o.push(a.map((v, k) => v + (b[k] - v) * t / seg)); carry = seg - (t - d); }
@@ -569,70 +631,152 @@ function initThree(){
     const n = P.length, at = i => i < 0 ? P[0].map((v, d) => 2 * v - P[-i][d]) : i >= n ? P[n - 1].map((v, d) => 2 * v - P[2 * (n - 1) - i][d]) : P[i];
     return P.map((_, i) => { const o = P[i].map(() => 0); for (let j = -k; j <= k; j++){ const q = at(i + j); for (let d = 0; d < o.length; d++) o[d] += q[d] * w[j + k]; } return o.map(v => v / ws); }); }
   function along(P, s){ const f = Math.max(0, Math.min(P.length - 1.0001, s / SPAN)), i = f | 0, r = f - i; return P[i].map((v, d) => v + (P[i + 1][d] - v) * r); }
-  const labels = [];
-  function resize(){ const w = hero.clientWidth, h = hero.clientHeight; renderer.setSize(w, h, false); cam.aspect = w / h; cam.updateProjectionMatrix(); }
-  function home(){ cam.position.set(-1900, 1500, 2600); ctl.target.set(150, 0, -150); cam.lookAt(ctl.target); ctl.update(); }
-  Promise.all([load("terrain.json"), new Promise((res, rej) => { const im = new Image(); im.onload = () => res(im); im.onerror = rej; im.src = "data/terrain_height.png"; })]).then(([tj, im]) => {
-    T = tj; const n = tj.n, cv = document.createElement("canvas"); cv.width = cv.height = n;
+
+  function build(im){
+    const n = tj.n, cv = document.createElement("canvas"); cv.width = cv.height = n;
     const cx = cv.getContext("2d"); cx.drawImage(im, 0, 0); const px = cx.getImageData(0, 0, n, n).data;
     const g = new THREE.PlaneGeometry(tj.size_m, tj.size_m, n - 1, n - 1); g.rotateX(-Math.PI / 2);
-    const pos = g.attributes.position;
-    const HT = new Float32Array(n * n);
+    const pos = g.attributes.position, HT = new Float32Array(n * n);
     for (let i = 0; i < n * n; i++){ HT[i] = ((px[i * 4] * 256 + px[i * 4 + 1]) / 10) * EX; pos.setY(i, HT[i]); }
     g.computeVertexNormals();
-    const tex = new THREE.TextureLoader().load("data/terrain_tex.jpg", () => { stat.hidden = true; });
-    tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
-    mesh = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ map: tex })); scene.add(mesh);
-    // Flight line: the channel follows every meander, so the camera rides a heavily smoothed copy of it (sigma 300 m)
-    // and looks at a lightly smoothed copy (sigma 150 m) well upriver. Height is the smoothed river surface plus ALT,
-    // raised where the smoothed line cuts over a terrace or spur, then eased so it never steps.
-    const raw = resamp(tj.path.map(p => [p[0], -p[1], (p[2] - tj.zmin) * EX]), SPAN);
-    const cpath = resamp(gsmooth(raw, 300 / SPAN), SPAN), lpath = resamp(gsmooth(raw, 150 / SPAN), SPAN);
     const half = tj.size_m / 2, cell = tj.size_m / (n - 1);
     const hAt = (x, z) => { const c = Math.max(0, Math.min(n - 1.001, (x + half) / cell)), r = Math.max(0, Math.min(n - 1.001, (z + half) / cell)), c0 = c | 0, r0 = r | 0, fc = c - c0, fr = r - r0, i = r0 * n + c0;
       return (HT[i] * (1 - fc) + HT[i + 1] * fc) * (1 - fr) + (HT[i + n] * (1 - fc) + HT[i + n + 1] * fc) * fr; };
-    const ring = [[0, 0], [60, 0], [-60, 0], [0, 60], [0, -60], [42, 42], [-42, 42], [42, -42], [-42, -42]];
-    let alt = cpath.map(p => Math.max(p[2] + ALT, Math.max(...ring.map(o => hAt(p[0] + o[0], p[1] + o[1]))) + 30));
-    alt = alt.map((_, i) => Math.max(...alt.slice(Math.max(0, i - 15), i + 16)));            // hold the height through each rise
-    alt = gsmooth(alt.map(v => [v]), 12).map(v => v[0]);
-    FP = { c: cpath.map((p, i) => [p[0], alt[i], p[1]]), l: lpath.map(p => [p[0], p[2] + 6, p[1]]), len: (Math.min(cpath.length, lpath.length) - 1) * SPAN };
+    const RING = [[0, 0], [70, 0], [-70, 0], [0, 70], [0, -70], [50, 50], [-50, 50], [50, -50], [-50, -50]];
+    const clear = (x, z) => Math.max(...RING.map(o => hAt(x + o[0], z + o[1])));
+    scene.add(new THREE.Mesh(g, new THREE.ShaderMaterial({ uniforms: U, vertexShader: VS, fragmentShader: FS })));
+    // the river, smoothed hard (sigma 300 m) so the flight line ignores the meanders
+    const raw = resamp(tj.path.map(p => [p[0], -p[1], (p[2] - tj.zmin) * EX]), SPAN);
+    const R = resamp(gsmooth(raw, 300 / SPAN), SPAN), LEN = (R.length - 1) * SPAN;
+    const riv = s => along(R, Math.max(0, Math.min(LEN, s)));
+    // path samples are [x, z, height] in scene units
+    const tan = s => { const a = riv(s - 40), b = riv(s + 40), dx = b[0] - a[0], dz = b[1] - a[1], l = Math.hypot(dx, dz) || 1; return [dx / l, dz / l]; };
+    const P = (s, h, lat = 0) => { const r = riv(s), t = tan(Math.max(0, Math.min(LEN, s))), ex = s < 0 ? s : s > LEN ? s - LEN : 0;
+      return new THREE.Vector3(r[0] - t[1] * lat + t[0] * ex, r[2] + h, r[1] + t[0] * lat + t[1] * ex); };
+    const W = s => { const r = riv(s); return new THREE.Vector3(r[0], r[2] + 6, r[1]); };
+    U.uA.value.set(R[0][0], R[0][1]); const e = R[R.length - 1]; const dx = e[0] - R[0][0], dz = e[1] - R[0][1], dl = Math.hypot(dx, dz);
+    U.uDir.value.set(dx / dl, dz / dl); U.uLen.value = dl;
+    // keyframes: a high opening shot from downstream, down to drone height up the river, then a climb into an orbit
+    // the exit climbs out to the side of the valley (never over its own look point), and the orbit starts where the climb
+    // ends, so the view turns from up-river to the valley centre gradually instead of whipping round
+    const Cf = W(LEN * 0.55); Cf.y += 40;
+    const S = -1, K7 = P(3900, 640, S * 1300), OR = Math.hypot(K7.x - Cf.x, K7.z - Cf.z), OH = K7.y;
+    const orb = a => new THREE.Vector3(Cf.x + OR * Math.cos(a), OH, Cf.z + OR * Math.sin(a));
+    const a0 = Math.atan2(K7.z - Cf.z, K7.x - Cf.x), K6 = P(3650, 260, S * 480);
+    const r_ = K7.clone().sub(Cf), v_ = K7.clone().sub(K6), dir = (r_.z * v_.x - r_.x * v_.z) < 0 ? 1 : -1;
+    const KC = [P(-420, 640), P(260, 330, 90), P(900, 150), P(1600, 92, -30), P(2400, 82, 25), P(3200, 90), K6, K7, orb(a0 + 0.35 * dir), orb(a0 + 0.7 * dir)];
+    const KL = [W(1700), W(1500), W(1800), W(2500), W(3300), W(4000), W(4500), W(4300).lerp(Cf, 0.65), Cf, Cf];
+    const cc = new THREE.CatmullRomCurve3(KC, false, "centripetal"), lc = new THREE.CatmullRomCurve3(KL, false, "centripetal");
+    cc.arcLengthDivisions = lc.arcLengthDivisions = 4000; cc.updateArcLengths(); lc.updateArcLengths();   // a fine arc-length table keeps the speed even
+    // lift wherever the line between keyframes would pass close over a spur, eased so the camera never steps
+    const NS = 1200; let lift = new Float32Array(NS + 1);
+    for (let i = 0; i <= NS; i++){ const p = cc.getPointAt(i / NS); lift[i] = Math.max(0, clear(p.x, p.z) + 35 - p.y); }
+    lift = Array.from(lift, (_, i) => Math.max(...lift.slice(Math.max(0, i - 30), i + 31)));
+    lift = gsmooth(lift.map(v => [v]), 18).map(v => v[0]);
+    const RE = 0.07, VM = 1 / (1 - RE / 2);                                   // ease in over the first 7%, then even speed
+    const speed = cc.getLength() * VM / DUR, om = speed / OR * dir;          // the orbit carries on at the same ground speed
+    FL = { cc, lc, lift, NS, Cf, orb, a1: a0 + 0.7 * dir, om };
     tj.labels.forEach(l => { const d = document.createElement("div"); d.className = "lab3d"; d.textContent = l.name; $("#labs3d").appendChild(d);
-      labels.push({ el: d, v: new THREE.Vector3(l.x, (l.z - tj.zmin) * EX + 60, -l.y) }); });
-    resize(); home(); requestAnimationFrame(loop);
-    if (!reduced) setTimeout(() => { if (!ctl.enabled && !flying) fly(true); }, 1200);
-  }).catch(() => { canvas.hidden = true; });
-  function fly(on){ flying = on; $("#bFly").setAttribute("aria-pressed", on); $("#bFly").textContent = on ? "Pause" : "Fly up the river";
-    if (on) { ctl.enabled = false; $("#bOrbit").setAttribute("aria-pressed", false); t0 = performance.now() - (fly.t || 0) * DUR;
-      // ease in from wherever the camera is now
-      fly.intro = performance.now(); from.p.copy(cam.position); cam.getWorldDirection(from.q).multiplyScalar(800).add(cam.position); }
-    else fly.t = fly.t || 0; }
-  function loop(now){
-    requestAnimationFrame(loop);
-    if (flying && FP) {
-      const e = Math.min(1, (now - fly.intro) / 3500), ease = e * e * (3 - 2 * e);
-      if (e < 1) t0 = now - (fly.t || 0) * DUR;                       // hold the place on the line during the ease-in
-      let u = (now - t0) / DUR; if (u >= 1) { u = 0; t0 = now; } fly.t = u;
-      const r = 0.12, vm = 1 / (1 - r), w = 1 - u;                   // even speed, easing over the first and last 12%
-      const s = (u < r ? vm * u * u / (2 * r) : u > 1 - r ? 1 - vm * w * w / (2 * r) : vm * (u - r / 2)) * (FP.len - AHEAD);
-      const p = along(FP.c, s), q = along(FP.l, s + AHEAD);
-      cam.position.set(p[0], p[1], p[2]); lookT.set(q[0], q[1], q[2]);
-      if (ease < 1){ cam.position.lerpVectors(from.p, cam.position, ease); lookT.lerpVectors(from.q, lookT, ease); }
-      cam.lookAt(lookT);
-    } else ctl.update();
-    renderer.render(scene, cam);
-    const w = hero.clientWidth, h = hero.clientHeight;
-    labels.forEach(l => { const v = l.v.clone().project(cam); const vis = v.z < 1 && Math.abs(v.x) < 1.05 && Math.abs(v.y) < 1.05;
-      l.el.style.display = vis ? "" : "none"; if (vis) { l.el.style.left = ((v.x + 1) / 2 * w) + "px"; l.el.style.top = ((1 - v.y) / 2 * h) + "px"; } });
+      labels.push({ el: d, v: new THREE.Vector3(l.x, (l.z - tj.zmin) * EX + 60, -l.y), on: -1 }); });
+    // road legend from the classes in this tile
+    const rc = tj.road_classes || [{ name: "Road found in the lidar", color: "#E8A33D", km: 0 }];
+    rc.forEach((c, i) => U.uPal.value[i].set(c.color));
+    const km = rc.reduce((a, c) => a + c.km, 0);
+    STAGES[3].s = km ? `${fmt(km)} km of road in this view alone${tj.roads_classed ? ", sorted by how it is used" : ""}. Across the Upper Mad, half the road network is on no public map.` : "Every road bench under the trees, mapped or not.";
+    $("#leg3dRoads").innerHTML = rc.map(c => `<div><b style="background:${c.color}"></b>${esc3(c.name)}</div>`).join("");
   }
-  $("#bFly").addEventListener("click", () => fly(!flying));
-  $("#bOrbit").addEventListener("click", () => { fly(false); ctl.enabled = !ctl.enabled; $("#bOrbit").setAttribute("aria-pressed", ctl.enabled); if (ctl.enabled) { if (fly.t) ctl.target.copy(lookT); ctl.update(); } });
-  $("#bReset").addEventListener("click", () => { fly(false); fly.t = 0; home(); });
+  const esc3 = s => String(s).replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+  function camAt(t){
+    const f = t / DUR;
+    if (f <= 1){
+      const u = f < RE_() ? VM_() * f * f / (2 * RE_()) : VM_() * (f - RE_() / 2);
+      const p = FL.cc.getPointAt(Math.min(1, u)), tt = FL.cc.getUtoTmapping(Math.min(1, u)), q = FL.lc.getPoint(tt);
+      const li = Math.min(FL.NS, u * FL.NS), i0 = li | 0, lr = li - i0; p.y += FL.lift[i0] * (1 - lr) + (FL.lift[Math.min(FL.NS, i0 + 1)] || 0) * lr;
+      cam.position.copy(p); lookT.copy(q);
+    } else { cam.position.copy(FL.orb(FL.a1 + FL.om * (t - DUR))); lookT.copy(FL.Cf); }
+    cam.lookAt(lookT);
+  }
+  const RE_ = () => 0.07, VM_ = () => 1 / (1 - 0.07 / 2);
+  // ---- layers: the flight drives them until a viewer picks one ----
+  function layers(dt){
+    let tgt;
+    if (!manual){ const a = auto(Math.min(1, ft / DUR)); tgt = { wipe: a.wipe, streams: a.streams, sA: 1, roads: a.roads, rA: 1, rem: a.rem }; Object.assign(cur, tgt); }
+    else {
+      const k = 1 - Math.exp(-dt / 0.35), step = (a, b, r) => a + Math.max(-r * dt, Math.min(r * dt, b - a));
+      cur.wipe = step(cur.wipe, want.lidar, 0.45);
+      cur.sA += ((want.streams ? 1 : 0) - cur.sA) * k; if (want.streams) cur.streams = step(cur.streams, 1, 0.5);
+      cur.rA += ((want.roads ? 1 : 0) - cur.rA) * k; if (want.roads) cur.roads = step(cur.roads, 1, 0.5);
+      cur.rem += ((want.rem ? 1 : 0) - cur.rem) * k;
+      settle = Math.abs(cur.wipe - want.lidar) + Math.abs(cur.sA - (want.streams ? 1 : 0)) + Math.abs(cur.rA - (want.roads ? 1 : 0)) + Math.abs(cur.rem - (want.rem ? 1 : 0))
+        + (want.streams ? 1 - cur.streams : 0) + (want.roads ? 1 - cur.roads : 0);
+    }
+    U.uWipe.value = cur.wipe; U.uStream.value = cur.streams; U.uStreamA.value = cur.sA; U.uRoad.value = cur.roads; U.uRoadA.value = cur.rA; U.uRem.value = cur.rem;
+    const on = { img: cur.wipe < 0.5, lidar: cur.wipe >= 0.5, streams: cur.streams > 0.02 && cur.sA > 0.5, roads: cur.roads > 0.02 && cur.rA > 0.5, rem: cur.rem > 0.5 };
+    $$("#lay3d [data-l]").forEach(b => { const v = String(!!on[b.dataset.l]); if (b.getAttribute("aria-pressed") !== v) b.setAttribute("aria-pressed", v); });
+    $("#leg3dRoads").hidden = !on.roads; $("#leg3dRem").hidden = !on.rem; $("#leg3d").hidden = !(on.roads || on.rem);
+    const st = manual ? null : STAGES.filter(s => s.at <= ft / DUR).pop();
+    const box = $("#stage");
+    if (box.dataset.k !== (st ? st.t : "")) { box.dataset.k = st ? st.t : ""; box.classList.add("off");
+      clearTimeout(box._t); box._t = setTimeout(() => { if (st) { box.querySelector("b").textContent = st.t; box.querySelector("span").textContent = st.s; box.classList.remove("off"); } }, 380); }
+  }
+  function placeLabels(){
+    const w = hero.clientWidth, h = hero.clientHeight, show = cur.streams > 0.3 && cur.sA > 0.5;
+    labels.forEach(l => { const v = l.v.clone().project(cam), vis = show && v.z < 1 && Math.abs(v.x) < 1.05 && Math.abs(v.y) < 1.05;
+      if (vis !== l.on) { l.el.style.display = vis ? "" : "none"; l.on = vis; }
+      if (vis) l.el.style.transform = `translate(${((v.x + 1) / 2 * w).toFixed(1)}px,${((1 - v.y) / 2 * h).toFixed(1)}px) translate(-50%,-100%)`; });
+  }
+  // ---- render only while the view is on screen and something is moving ----
+  function frame(now){
+    raf = 0; if (!visible || document.hidden) return;
+    const dt = Math.min(0.1, (now - (last || now)) / 1000); last = now;
+    if (playing) ft = now - t0;
+    if (FL && !ctl.enabled) camAt(ft); else ctl.update();
+    layers(dt); renderer.render(scene, cam); placeLabels();
+    if (playing || ctl.enabled || (manual && settle > 0.002)) raf = requestAnimationFrame(frame); else last = 0;
+  }
+  function kick(){ if (!raf && visible && !document.hidden) raf = requestAnimationFrame(frame); }
+  function play(on){ playing = on && !!FL; if (playing){ ctl.enabled = false; $("#bOrbit").setAttribute("aria-pressed", "false"); t0 = performance.now() - ft; }
+    $("#bFly").setAttribute("aria-pressed", String(playing)); $("#bFly").textContent = playing ? "Pause" : "Play"; kick(); }
+  new IntersectionObserver(es => { visible = es[es.length - 1].isIntersecting; if (visible) { last = 0; if (playing) t0 = performance.now() - ft; kick(); } }, { threshold: 0.02 }).observe(hero);
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) { last = 0; if (playing) t0 = performance.now() - ft; kick(); } });
+  $("#bFly").addEventListener("click", () => play(!playing));
+  $("#bOrbit").addEventListener("click", () => { const on = !ctl.enabled; play(false); ctl.enabled = on; $("#bOrbit").setAttribute("aria-pressed", String(on));
+    if (on) { ctl.target.copy(lookT); ctl.update(); } kick(); });
+  $("#bReset").addEventListener("click", () => { ft = 0; manual = false; ctl.enabled = false; $("#bOrbit").setAttribute("aria-pressed", "false"); play(true); });
+  $$("#lay3d [data-l]").forEach(b => b.addEventListener("click", () => {
+    if (!manual) { manual = true; want.lidar = cur.wipe >= 0.5 ? 1 : 0; want.streams = cur.streams > 0.02; want.roads = cur.roads > 0.02; want.rem = cur.rem > 0.5; }
+    const l = b.dataset.l;
+    if (l === "img") want.lidar = 0; else if (l === "lidar") want.lidar = 1;
+    else if (l === "streams") want.streams = !want.streams; else if (l === "roads") want.roads = !want.roads;
+    else if (l === "rem") { want.rem = !want.rem; if (want.rem) want.lidar = 1; }
+    kick(); }));
   addEventListener("resize", resize);
+  // ---- load ----
+  const img = src => new Promise((res, rej) => { const im = new Image(); im.onload = () => res(im); im.onerror = rej; im.src = src; });
+  const tex = src => new Promise((res, rej) => new THREE.TextureLoader().load(src, t => { t.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy()); res(t); }, undefined, rej));
+  Promise.all([load("terrain.json"), img("data/terrain_height.png"), tex("data/tex_img.jpg"), tex("data/tex_lidar.jpg"), tex("data/terrain_tex.jpg"), tex("data/tex_roads.png"), tex("data/tex_streams.png")])
+    .then(([j, im, ti, tl, tr, tro, ts]) => {
+      tj = j; U.tImg.value = ti; U.tLid.value = tl; U.tRem.value = tr; U.tRoad.value = tro; U.tStr.value = ts; build(im); resize();
+      stat.hidden = true;
+      if (reduced) { manual = true; Object.assign(cur, { wipe: 1, streams: 1, roads: 1, rem: 1 }); ft = DUR * 1.02; camAt(ft); kick(); }
+      else { camAt(0); kick(); setTimeout(() => { if (!ctl.enabled && !manual) play(true); }, 700); }
+    }).catch(() => { canvas.hidden = true; });
   return { resize };
 }
 
 /* ---------------- TAB 2: what we found ---------------- */
-let mapF = null, theme = "forest", roadMode = "both", WS = null;
+// road classes from ERASER plus the maps (see roads.json); dashed classes are no longer driven
+const ROADC = [["#2B2B2B", 1.9, "Main road"], ["#E26D1C", 1.25, "Forest road"], ["#A1302B", 1.05, "Closed road"], ["#7A5EA8", 1.05, "Trail on an old road"], ["#B58AD0", 0.9, "Trail"], ["#8C6D4F", 0.8, "Skid trail"]];
+const RDASH = [2, 3, 4];
+function addRoads(map, rd, before, op = 1){
+  map.addSource("rd", { type: "geojson", data: rd });
+  const col = ["match", ["get", "c"]].concat(...ROADC.map((r, i) => [i, r[0]]), ["#E26D1C"]), wid = ["match", ["get", "c"]].concat(...ROADC.map((r, i) => [i, r[1]]), [1]);
+  const w = ["interpolate", ["linear"], ["zoom"], 10, ["*", 0.8, wid], 14, ["*", 2.0, wid]];
+  map.addLayer({ id: "rd", type: "line", source: "rd", filter: ["!", ["in", ["get", "c"], ["literal", RDASH]]], paint: { "line-color": col, "line-width": w, "line-opacity": op } }, before);
+  map.addLayer({ id: "rd-dash", type: "line", source: "rd", filter: ["in", ["get", "c"], ["literal", RDASH]], paint: { "line-color": col, "line-width": w, "line-opacity": op, "line-dasharray": [2.2, 1.4] } }, before);
+}
+
+let mapF = null, theme = "forest", WS = null;
 const ORDER = []; // atlas page order
 const THEMES = {
   forest: { title: "Forest to protect", color: "--forest",
@@ -642,11 +786,11 @@ const THEMES = {
     rank: "rank_fuel", metric: p => fmt(p.treat) + " ha treatable",
     concept: '<svg viewBox="0 0 300 90"><rect width="300" height="90" fill="var(--fire)" opacity=".18"/><path d="M20 60 C 40 30, 90 35, 80 65 S 30 80, 20 60Z" fill="#C2491D"/><path d="M130 40 C 150 20, 200 25, 195 55 S 140 70, 130 40Z" fill="#2F6B45"/><path d="M230 60 C 245 45, 280 50, 275 72 S 235 80, 230 60Z" fill="#9DB58A"/><text x="22" y="86" font-size="10" fill="var(--muted)">near homes</text><text x="138" y="80" font-size="10" fill="var(--muted)">refugia</text><text x="228" y="88" font-size="10" fill="var(--muted)">other</text></svg>' },
   roads: { title: "Roads", color: "--rust",
-    big: [["1,556 km", "of road found in the lidar"], ["540 km", "on public maps (TIGER and OSM average)"], ["65%", "missing from any map"]],
-    text: "Public road maps show about a third of the roads that are really here. Most of the rest are old logging roads under the forest. Unmapped roads still carry water and still fail, so they belong in any plan.",
-    legend: [["#4A4A4A", "On a public map", 1, "line"], ["#E26D1C", "Only in the lidar", 1, "line"]],
+    big: [["1,532 km", "of road found in the lidar"], ["809 km", "on no public map"], ["53%", "of the network unmapped"]],
+    text: "About half the road in the lidar, 809 km, matches no road on OpenStreetMap, the Census or Forest Service maps. Every line here was traced from the lidar, then classed by how it is used: the maps say which are main and forest roads, and the shape of the road bench says which have closed, grown in or turned into trails. Closed roads still carry water and still fail, so they belong in any plan.",
+    legend: [["#E26D1C", "Road found in the lidar", 1, "line"]],
     rank: "rank_sed", metric: p => fmt(p.road_km) + " km road · " + Math.round(p.pct_missed) + "% unmapped",
-    concept: '<svg viewBox="0 0 300 90"><path d="M10 80 C 60 60, 90 70, 130 40 S 220 30, 290 10" fill="none" stroke="#4A4A4A" stroke-width="3"/><path d="M60 64 C 80 40, 70 20, 100 8 M150 36 C 160 60, 200 70, 230 82 M210 28 C 230 40, 260 45, 285 60" fill="none" stroke="#E26D1C" stroke-width="2.4" stroke-dasharray="6 3"/><text x="12" y="20" font-size="10" fill="var(--muted)">dashed: on no map</text></svg>' },
+    concept: '<svg viewBox="0 0 300 90"><path d="M10 80 C 60 60, 90 70, 130 40 S 220 30, 290 10" fill="none" stroke="#4A4A4A" stroke-width="3"/><path d="M60 64 C 80 40, 70 20, 100 8 M150 36 C 160 60, 200 70, 230 82 M210 28 C 230 40, 260 45, 285 60" fill="none" stroke="#E26D1C" stroke-width="2.4" stroke-dasharray="6 3"/><text x="12" y="20" font-size="10" fill="var(--muted)">dashed: closed roads and trails</text></svg>' },
   floodplain: { title: "Floodplain connections", color: "--teal",
     big: [["447 ha", "within 2 m of a channel"], ["589 ha", "at 2 to 4 m"], ["409 ha", "on open National Forest"]],
     text: "Valley floor within 2 m of the river can often be reconnected with low-tech, process-based tools: beaver dam analogs and wood structures that slow water and raise the water table. The 2 to 4 m band usually needs earthwork. Most of the low ground on the main stem near Ruth is private, so that work starts with willing landowners.",
@@ -664,7 +808,7 @@ inits.findings = () => {
   if (mapF) { mapF.resize(); return; }
   mapF = baseMap("mapF");
   mapF.ready.then(async map => {
-    const [ov, rm, rl, fpz, xs] = await Promise.all([load("overlays.json"), load("roads_mapped.json"), load("roads_lidar_only.json"), load("floodplain.json"), load("crossings.json")]);
+    const [ov, rd, fpz, xs] = await Promise.all([load("overlays.json"), load("roads.json"), load("floodplain.json"), load("crossings.json")]);
     WS = (await load("watersheds.json")).features.map(f => f.properties);
     const b = below(map);
     map.addSource("fire", { type: "image", url: new URL("data/fire2020.png", location.href).href, coordinates: ov.fire2020 });
@@ -673,9 +817,12 @@ inits.findings = () => {
     map.addLayer({ id: "forest", type: "raster", source: "forest", paint: { "raster-fade-duration": 0 } }, b);
     map.addSource("fpz", { type: "geojson", data: fpz });
     map.addLayer({ id: "fpz", type: "fill", source: "fpz", paint: { "fill-color": ["case", ["==", ["get", "own"], "Constrained"], "#B5413B", ["==", ["get", "tier"], 1], "#127A7A", "#8CC5B8"], "fill-opacity": 0.85 } });
-    map.addSource("rm", { type: "geojson", data: rm }); map.addSource("rl", { type: "geojson", data: rl });
-    map.addLayer({ id: "rm", type: "line", source: "rm", paint: { "line-color": "#3E3E3E", "line-width": 1.1 } });
-    map.addLayer({ id: "rl", type: "line", source: "rl", paint: { "line-color": "#E26D1C", "line-width": 1.2 } });
+    addRoads(map, rd);
+    // the roads lens counts what the classes add up to
+    const km = {}; rd.features.forEach(f => km[f.properties.c] = (km[f.properties.c] || 0) + f.properties.km);
+    const sum = ks => ks.reduce((a, k) => a + (km[k] || 0), 0), tot = sum([0, 1, 2, 3, 4, 5]);
+    THEMES.roads.big = [[fmt(tot) + " km", "of road found in the lidar"], ["809 km", "on no public map"], [fmt(sum([2, 3, 5])) + " km", "closed, abandoned or skid trails"]];
+    THEMES.roads.legend = ROADC.map((r, i) => [r[0], r[2] + (km[i] ? ` · ${fmt(km[i])} km` : ""), 1, "line"]).filter((_, i) => km[i]);
     map.addSource("xs", { type: "geojson", data: xsGeo(xs) });
     map.addLayer({ id: "xs", type: "circle", source: "xs", paint: { "circle-radius": ["interpolate", ["linear"], ["get", "f"], 0, 1.6, 400, 3.2, 1500, 6.5],
       "circle-color": ["case", ["==", ["get", "d"], 1], "#A1302B", "#FFFFFF"], "circle-stroke-color": "#2B2B2B", "circle-stroke-width": 0.4 } });
@@ -697,19 +844,17 @@ function applyTheme(){
   const T = THEMES[theme]; if (!mapF) return;
   const m = mapF;
   vis(m, "forest", theme === "forest"); vis(m, "fire", theme === "forest");
-  vis(m, "rm", theme === "roads" && roadMode !== "lidar"); vis(m, "rl", theme === "roads" && roadMode !== "mapped");
+  vis(m, "rd", theme === "roads"); vis(m, "rd-dash", theme === "roads");
   vis(m, "fpz", theme === "floodplain"); vis(m, "xs", theme === "crossings");
   const top = (WS || []).filter(p => p[T.rank]).sort((a, b) => a[T.rank] - b[T.rank]).slice(0, 5);
+  $("#lensLegend").innerHTML = T.legend.map(([c, l, o, k]) => `<div><i class="${k || ""}" style="background:${c};opacity:${o || 1};${c === "#FFFFFF" ? "border:1px solid var(--ink)" : ""}"></i>${l}</div>`).join("");
   const P = $("#themePanel");
   P.innerHTML = `<div class="eyebrow">Lens</div><h2>${T.title}</h2><div class="concept">${T.concept}</div>
     <div class="big">${T.big.map(([v, l]) => `<div><b class="num">${v}</b><span>${l}</span></div>`).join("")}</div>
-    ${theme === "roads" ? `<div class="seg" role="group" aria-label="Which roads"><button data-r="mapped">On maps</button><button data-r="lidar">Lidar only</button><button data-r="both">Both</button></div>` : ""}
     <p style="margin:0">${T.text}</p>
-    <div class="legend">${T.legend.map(([c, l, o, k]) => `<div><i class="${k || ""}" style="background:${c};opacity:${o || 1};${c === "#FFFFFF" ? "border:1px solid var(--ink)" : ""}"></i>${l}</div>`).join("")}</div>
     <div><div class="eyebrow" style="margin-bottom:4px">Creeks that stand out</div><ul class="toplist">${top.map(p => `<li><button data-ws="${p.name}"><span class="r">${p[T.rank]}</span><span class="n">${p.name}</span><span class="r">${T.metric(p)}</span></button></li>`).join("")}</ul>
     <p class="note" style="margin:6px 0 0">Ranked among the 26 creeks. Click a creek here or on the map.</p></div>`;
   $$("#themePanel [data-ws]").forEach(b => b.addEventListener("click", () => openCard(b.dataset.ws, true)));
-  $$("#themePanel [data-r]").forEach(b => { b.setAttribute("aria-pressed", b.dataset.r === roadMode); b.addEventListener("click", () => { roadMode = b.dataset.r; applyTheme(); }); });
 }
 function openCard(name, zoom){
   const p = WS.find(x => x.name === name); if (!p) return;
@@ -836,11 +981,9 @@ inits.projects = () => {
   if (mapR) { mapR.resize(); return; }
   mapR = baseMap("mapR");
   mapR.ready.then(async map => {
-    const [xs, rm, rl, ws] = await Promise.all([load("crossings.json"), load("roads_mapped.json"), load("roads_lidar_only.json"), load("watersheds.json")]);
+    const [xs, rd, ws] = await Promise.all([load("crossings.json"), load("roads.json"), load("watersheds.json")]);
     XS = xs;
-    map.addSource("rm", { type: "geojson", data: rm }); map.addSource("rl", { type: "geojson", data: rl });
-    map.addLayer({ id: "rm", type: "line", source: "rm", paint: { "line-color": "#4A4A4A", "line-width": 0.8, "line-opacity": 0.7 } });
-    map.addLayer({ id: "rl", type: "line", source: "rl", paint: { "line-color": "#4A4A4A", "line-width": 0.8, "line-opacity": 0.7 } });
+    addRoads(map, rd, undefined, 0.75);
     map.addSource("xs", { type: "geojson", data: xsGeo(xs) });
     map.addLayer({ id: "xs", type: "circle", source: "xs", paint: { "circle-radius": ["interpolate", ["linear"], ["zoom"], 10, ["interpolate", ["linear"], ["get", "f"], 0, 1.4, 1500, 4.5], 14, ["interpolate", ["linear"], ["get", "f"], 0, 3, 1500, 11]],
       "circle-color": ["case", ["==", ["get", "d"], 1], "#A1302B", "#FFFFFF"], "circle-stroke-color": "#2B2B2B", "circle-stroke-width": 0.5 } });
@@ -871,26 +1014,33 @@ function setCircle(c, r, example){
   circ = { c, r }; $("#exTag").hidden = !example; $("#radV").textContent = (r / 1000).toFixed(2) + " km";
   mapR.getSource("circ").setData({ type: "FeatureCollection", features: [{ type: "Feature", geometry: { type: "Polygon", coordinates: [ring(c, r)] }, properties: {} }] });
   const inside = XS.filter(x => dist(c, [x[0], x[1]]) <= r);
-  sel = { n: inside.length, cul: inside.filter(x => x[2] === "c").length, uni: inside.filter(x => x[2] === "u").length,
-    div: inside.filter(x => x[3] === 1).length, fill: inside.reduce((s, x) => s + x[4], 0), deb: inside.filter(x => x[5] === 3).length };
-  $("#selBig").innerHTML = `<div><b class="num">${fmt(sel.n)}</b><span>crossings inside</span></div><div><b class="num">${fmt(sel.div)}</b><span>could divert</span></div><div><b class="num">${fmt(sel.fill)}</b><span>m³ of fill</span></div>`;
+  // x[7] = 1 when the crossing sits on a road the lidar classes as closed or an old road now used as a trail
+  const shut = inside.filter(x => x[7] === 1), open = inside.filter(x => x[7] !== 1);
+  sel = { n: inside.length, cul: open.filter(x => x[2] === "c").length, uni: open.filter(x => x[2] === "u").length, div: open.filter(x => x[3] === 1).length,
+    fillOpen: open.reduce((s, x) => s + x[4], 0), shut: shut.length, fillShut: shut.reduce((s, x) => s + x[4], 0),
+    divAll: inside.filter(x => x[3] === 1).length, fill: inside.reduce((s, x) => s + x[4], 0), deb: inside.filter(x => x[5] === 3).length };
+  $("#selBig").innerHTML = `<div><b class="num">${fmt(sel.n)}</b><span>crossings inside</span></div><div><b class="num">${fmt(sel.divAll)}</b><span>could divert</span></div><div><b class="num">${fmt(sel.fill)}</b><span>m³ of fill</span></div>`;
   calc();
 }
 $("#rad").addEventListener("input", () => { if (circ) setCircle(circ.c, +$("#rad").value, !$("#exTag").hidden); });
 $("#bDraw").addEventListener("click", () => { drawMode = "center"; $("#drawHint").hidden = false; $("#drawHint").textContent = "Click the center of the project area"; });
-["cCul", "cDip", "cShare", "cFill", "cOH"].forEach(id => $("#" + id).addEventListener("input", calc));
+["cCul", "cFord", "cDip", "cShare", "cFill", "cOH"].forEach(id => $("#" + id).addEventListener("input", calc));
 $("#prYear").addEventListener("change", () => renderProj());
 const val = id => Math.max(0, +$("#" + id).value || 0);
 function cost(s){
-  const a = s.cul * val("cCul"), b = s.div * val("cDip"), c = s.fill * val("cShare") / 100 * val("cFill"); const oh = (a + b + c) * val("cOH") / 100;
-  return { a, b, c, oh, tot: a + b + c + oh };
+  const v = id => Math.max(0, +$("#" + id).value || 0), keep = 1 - Math.min(100, v("cShare")) / 100;
+  // each crossing gets one treatment: kept-open ones are upsized, piped or armored (plus a dip where they could divert),
+  // and crossings on roads being closed have their fill dug out
+  const a = s.cul * keep * v("cCul"), u = s.uni * keep * v("cFord"), b = s.div * keep * v("cDip");
+  const c = (s.fillShut + s.fillOpen * (1 - keep)) * v("cFill"); const oh = (a + u + b + c) * v("cOH") / 100;
+  return { a, u, b, c, oh, tot: a + u + b + c + oh, closed: Math.round(s.shut + (s.cul + s.uni) * (1 - keep)) };
 }
 function calc(){
   if (!sel) return; const k = cost(sel);
   $("#costTot").textContent = money(k.tot);
-  const parts = [[k.a, "var(--water)", "culverts"], [k.b, "var(--fire)", "dips"], [k.c, "var(--rust)", "fill removal"], [k.oh, "var(--muted)", "design"]];
+  const parts = [[k.a, "var(--water)", "culverts"], [k.u, "var(--teal)", "unimproved crossings"], [k.b, "var(--fire)", "dips"], [k.c, "var(--rust)", "fill removal"], [k.oh, "var(--muted)", "design"]];
   $("#costStack").innerHTML = k.tot ? parts.map(p => `<span title="${p[2]}" style="width:${p[0] / k.tot * 100}%;background:${p[1]}"></span>`).join("") : "";
-  $("#costNote").textContent = `${fmt(sel.cul)} culverts, ${fmt(sel.uni)} unimproved crossings, ${fmt(sel.deb)} on high debris-flow hazard channels. Bars: culverts, dips, fill removal, design. Unit costs are placeholders, not bids.`;
+  $("#costNote").textContent = `${fmt(k.closed)} of ${fmt(sel.n)} crossings closed (${fmt(sel.shut)} already on closed or abandoned roads), the rest kept open. ${fmt(sel.deb)} sit on high debris-flow hazard channels. Bars: culverts, unimproved crossings, dips, fill removal, design. Unit costs are rough North Coast planning figures, not bids.`;
   if (!APROJ.length && !(LIVE && mine("project_sketches").length)) chart([]);
 }
 $("#bSaveProj").addEventListener("click", async () => {
@@ -898,7 +1048,7 @@ $("#bSaveProj").addEventListener("click", async () => {
   if ($("#prWeb").value) { $("#projStatus").textContent = "Thanks, it's in the review queue."; return; }   // bot trap
   const k = cost(sel);
   const row = { name: ($("#prName").value.trim() || "Unnamed sketch").slice(0, 70), lead: $("#prLead").value.trim().slice(0, 70) || null, start_year: +$("#prYear").value,
-    lng: +circ.c[0].toFixed(5), lat: +circ.c[1].toFixed(5), radius_m: Math.round(circ.r), crossings: sel.n, diversion_prone: sel.div, fill_m3: Math.round(sel.fill),
+    lng: +circ.c[0].toFixed(5), lat: +circ.c[1].toFixed(5), radius_m: Math.round(circ.r), crossings: sel.n, diversion_prone: sel.divAll, fill_m3: Math.round(sel.fill),
     cost_usd: Math.round(k.tot), unit_costs: { culvert: val("cCul"), dip: val("cDip"), close_share_pct: val("cShare"), fill_per_m3: val("cFill"), overhead_pct: val("cOH") } };
   $("#projStatus").textContent = "Sending…";
   try {

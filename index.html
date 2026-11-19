@@ -90,6 +90,14 @@ textarea{min-height:70px;resize:vertical}
 .hero .lay3d button{font:500 12px/1 var(--ui);padding:7px 10px;border-radius:999px;border:1px solid rgba(244,241,234,.35);background:rgba(14,27,38,.82);color:#F4F1EA;cursor:pointer}
 .hero .lay3d button[aria-pressed="true"]{background:#F4F1EA;color:#0e1b26;border-color:#F4F1EA}
 .hero .leg{background:rgba(14,27,38,.78);color:#F4F1EA;font-size:12px;padding:8px 10px;border-radius:8px;display:grid;gap:3px}
+.hero .leg .remkey{font-size:11px;letter-spacing:.06em;text-transform:uppercase;opacity:.8}
+.hero .leg .rembar{height:9px;border-radius:3px;width:210px;margin-top:4px}
+.hero .leg .remticks{position:relative;height:15px;width:210px;font-size:10.5px;opacity:.85}
+.hero .leg .remticks span{position:absolute;top:2px;transform:translateX(-50%);white-space:nowrap}
+.hero .leg .remticks span:first-child{transform:none}.hero .leg .remticks span:last-child{transform:translateX(-100%)}
+.hero .leg .rempick{display:flex;gap:4px;margin-top:6px}
+.hero .leg .rempick button{font:500 11px/1 var(--ui);padding:5px 8px;border-radius:999px;border:1px solid rgba(244,241,234,.35);background:transparent;color:#F4F1EA;cursor:pointer}
+.hero .leg .rempick button[aria-pressed="true"]{background:#F4F1EA;color:#0e1b26}
 .hero .leg b{display:inline-block;width:22px;height:5px;border-radius:2px;vertical-align:middle;margin-right:7px}
 @media (max-width:700px){.hero .lay3d{bottom:60px}.hero .stage{bottom:104px}.hero .stage span{display:none}.hero .leg{display:none}}
 .lab3d{position:absolute;left:0;top:0;will-change:transform;font-family:var(--display);font-style:italic;font-size:17px;color:#F4F1EA;text-shadow:0 0 4px #0e1b26,0 0 8px #0e1b26;pointer-events:none;white-space:nowrap}
@@ -240,7 +248,8 @@ textarea{min-height:70px;resize:vertical}
       </div>
       <div class="lay3d" id="lay3d">
         <div class="leg" id="leg3d" hidden><div id="leg3dRoads" hidden></div>
-          <div id="leg3dRem" hidden><div><b style="background:#0F4C6E"></b>within 2 m of the river</div><div><b style="background:#5FB3A9"></b>2 to 4 m</div></div></div>
+          <div id="leg3dRem" hidden><div class="remkey">Height above the river</div><div class="rembar" id="remBar"></div><div class="remticks" id="remTicks"></div>
+            <div class="rempick" id="remPick" role="group" aria-label="Floodplain colors"><button data-r="glow">Glow</button><button data-r="copper">Copper</button><button data-r="dusk">Dusk</button><button data-r="teal">Teal</button></div></div></div>
         <div class="row" role="group" aria-label="Layers">
           <button data-l="img" aria-pressed="true">Imagery</button><button data-l="lidar" aria-pressed="false">Lidar</button><button data-l="streams" aria-pressed="false">Streams</button><button data-l="roads" aria-pressed="false">Roads</button><button data-l="rem" aria-pressed="false">Floodplain</button>
         </div>
@@ -605,17 +614,17 @@ function initThree(){
     { at: 0.08, t: "Lidar: the bare ground", s: "Laser pulses that reach the soil strip away the trees and show the shape of the land." },
     { at: 0.18, t: "Streams", s: "Traced from the lidar, filling in from the river up into the side creeks." },
     { at: 0.34, t: "Roads the lidar found", s: "" },
-    { at: 0.66, t: "Valley floor", s: "Teal ground sits within 2 m of the river: room for the water to spread out again." },
+    { at: 0.66, t: "Valley floor", s: "" },
     { at: 0.82, t: "Look around", s: "Drag to look around, or switch the layers on and off below." } ];
   const ramp = (a, b, x) => Math.max(0, Math.min(1, (x - a) / (b - a)));
   const auto = f => ({ wipe: ramp(0.08, 0.16, f), streams: ramp(0.18, 0.34, f), roads: ramp(0.34, 0.62, f), rem: ramp(0.66, 0.74, f) });
   const U = { tImg: { value: null }, tLid: { value: null }, tRem: { value: null }, tRoad: { value: null }, tStr: { value: null },
-    uWipe: { value: 0 }, uStream: { value: 0 }, uStreamA: { value: 1 }, uRoad: { value: 0 }, uRoadA: { value: 1 }, uRem: { value: 0 },
+    uWipe: { value: 0 }, uStream: { value: 0 }, uStreamA: { value: 1 }, uRoad: { value: 0 }, uRoadA: { value: 1 }, uRem: { value: 0 }, uDark: { value: 0 },
     uA: { value: new THREE.Vector2() }, uDir: { value: new THREE.Vector2(1, 0) }, uLen: { value: 1 },
     uPal: { value: [0, 1, 2, 3, 4, 5].map(() => new THREE.Color("#E8A33D")) }, fogC: { value: SKY }, fogN: { value: 3400 }, fogF: { value: 8200 } };
   const VS = `varying vec2 vUv; varying vec3 vW; varying float vD;
     void main(){ vUv = uv; vec4 w = modelMatrix * vec4(position, 1.0); vW = w.xyz; vec4 m = viewMatrix * w; vD = -m.z; gl_Position = projectionMatrix * m; }`;
-  const FS = `uniform sampler2D tImg, tLid, tRem, tRoad, tStr; uniform float uWipe, uStream, uStreamA, uRoad, uRoadA, uRem, uLen, fogN, fogF;
+  const FS = `uniform sampler2D tImg, tLid, tRem, tRoad, tStr; uniform float uWipe, uStream, uStreamA, uRoad, uRoadA, uRem, uDark, uLen, fogN, fogF;
     uniform vec2 uA, uDir; uniform vec3 uPal[6]; uniform vec3 fogC; varying vec2 vUv; varying vec3 vW; varying float vD;
     vec3 pal(float id){ vec3 c = uPal[1]; for (int i = 0; i < 6; i++) { if (abs(float(i) - id) < 0.5) c = uPal[i]; } return c; }
     void main(){
@@ -625,12 +634,13 @@ function initThree(){
       c += vec3(0.85, 0.95, 1.0) * 0.55 * clamp(1.0 - abs(w - f) / 0.008, 0.0, 1.0) * step(0.001, uWipe) * step(uWipe, 0.999);
       vec3 s = texture2D(tStr, vUv).rgb;
       if (s.g > 0.002) { float on = clamp((uStream - s.g) / 0.012, 0.0, 1.0), hot = on * (1.0 - clamp((uStream - s.g) / 0.05, 0.0, 1.0));
-        c = mix(c, mix(vec3(0.26, 0.58, 0.86), vec3(0.75, 0.92, 1.0), hot), s.r * on * uStreamA); }
+        c = mix(c, mix(vec3(0.26, 0.58, 0.86), vec3(0.75, 0.92, 1.0), hot), s.r * on * uStreamA * (1.0 - 0.7 * uRem)); }   // lines step back when the floodplain colors are on
       vec3 r = texture2D(tRoad, vUv).rgb;
       if (r.g > 0.002) { float on = clamp((uRoad - r.g) / 0.012, 0.0, 1.0), hot = on * (1.0 - clamp((uRoad - r.g) / 0.05, 0.0, 1.0));
-        vec3 rc = pal(floor(r.b * 255.0 / 40.0 + 0.5) - 1.0);
-        c = mix(c, c * 0.35, r.r * on * uRoadA * 0.5);                        // a soft dark edge under the line
-        c = mix(c, mix(rc, vec3(1.0, 0.97, 0.85), hot * 0.7), clamp(r.r * 1.6 - 0.25, 0.0, 1.0) * on * uRoadA); }
+        float id = floor(r.b * 255.0 / 40.0 + 0.5) - 1.0; vec3 rc = pal(id);
+        if (id < 0.5) rc = mix(rc, vec3(0.95, 0.92, 0.84), uRem * uDark);   // the main road turns cream on a dark floodplain palette
+        c = mix(c, c * 0.35, r.r * on * uRoadA * 0.5 * (1.0 - 0.6 * uRem));                        // a soft dark edge under the line
+        c = mix(c, mix(rc, vec3(1.0, 0.97, 0.85), hot * 0.7), clamp(r.r * 1.6 - 0.25, 0.0, 1.0) * on * uRoadA * (1.0 - 0.6 * uRem)); }
       gl_FragColor = vec4(mix(c, fogC, smoothstep(fogN, fogF, vD)), 1.0); }`;
   let FL = null, labels = [], tj = null;
   let playing = false, manual = false, t0 = 0, ft = 0, raf = 0, last = 0, visible = true, settle = 0;
@@ -697,6 +707,8 @@ function initThree(){
     const RE = 0.07, VM = 1 / (1 - RE / 2);                                   // ease in over the first 7%, then even speed
     const speed = cc.getLength() * VM / DUR, om = speed / OR * dir;          // the orbit carries on at the same ground speed
     FL = { cc, lc, lift, NS, Cf, orb, a1: a0 + 0.7 * dir, om };
+    // ?debug in the address: window.__fl.seek(ms) jumps along the flight (paused), window.__fl.rem(id) switches palette
+    if (/[?&]debug\b/.test(location.search)) window.__fl = { seek: t => { playing = false; ft = t; t0 = performance.now() - t; camAt(ft); kick(); }, rem: k => setRem(k) };
     tj.labels.forEach(l => { const d = document.createElement("div"); d.className = "lab3d"; d.textContent = l.name; $("#labs3d").appendChild(d);
       labels.push({ el: d, v: new THREE.Vector3(l.x, (l.z - tj.zmin) * EX + 60, -l.y), on: -1 }); });
     // road legend from the classes in this tile
@@ -705,6 +717,24 @@ function initThree(){
     const km = rc.reduce((a, c) => a + c.km, 0);
     STAGES[3].s = km ? `${fmt(km)} km of road in this view alone${tj.roads_classed ? ", sorted by how it is used" : ""}. Across the Upper Baduwa't, half the road network is on no public map.` : "Every road bench under the trees, mapped or not.";
     $("#leg3dRoads").innerHTML = rc.map(c => `<div><b style="background:${c.color}"></b>${esc3(c.name)}</div>`).join("");
+  }
+  // floodplain palettes (build_rem_styles.py): REM rebuilt at 1 m, each with its own stretch and legend
+  const REMNOTE = { glow: "The glowing ground sits within 2 m of the river: room for the water to spread out again.",
+    copper: "The darkest ground sits within 2 m of the river: room for the water to spread out again.",
+    dusk: "The darkest ground sits within 2 m of the river; the color shifts from teal downstream to rust upstream.",
+    teal: "Dark teal ground sits within 2 m of the river: room for the water to spread out again." };
+  const DARK = { glow: 1 }, remTex = {};
+  let remStyle = "glow";
+  function setRem(k, first){
+    remStyle = k; const st = (tj.rem_styles || []).find(x => x.id === k); if (!st) return;
+    STAGES[4].s = REMNOTE[k] || ""; U.uDark.value = DARK[k] ? 1 : 0;
+    const box = $("#stage"); if (box.dataset.k === STAGES[4].t) box.querySelector("span").textContent = STAGES[4].s;
+    $$("#remPick button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.r === k)));
+    const at = (p, l) => `<span style="left:${(p * 100).toFixed(1)}%">${l}</span>`;
+    $("#remBar").style.background = `linear-gradient(90deg,${st.grad.join(",")})`;
+    $("#remTicks").innerHTML = at(0, "river") + Object.entries(st.ticks).map(([l, p]) => at(p, l)).join("") + at(1, st.top + " m");
+    const done = t => { remTex[k] = t; if (remStyle === k) { U.tRem.value = t; kick(); } };
+    if (remTex[k]) done(remTex[k]); else if (!first) tex(`data/tex_rem_${k}.jpg`).then(done);
   }
   const esc3 = s => String(s).replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
   function camAt(t){
@@ -775,9 +805,11 @@ function initThree(){
   // ---- load ----
   const img = src => new Promise((res, rej) => { const im = new Image(); im.onload = () => res(im); im.onerror = rej; im.src = src; });
   const tex = src => new Promise((res, rej) => new THREE.TextureLoader().load(src, t => { t.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy()); res(t); }, undefined, rej));
-  Promise.all([load("terrain.json"), img("data/terrain_height.png"), tex("data/tex_img.jpg"), tex("data/tex_lidar.jpg"), tex("data/terrain_tex.jpg"), tex("data/tex_roads.png"), tex("data/tex_streams.png")])
+  Promise.all([load("terrain.json"), img("data/terrain_height.png"), tex("data/tex_img.jpg"), tex("data/tex_lidar.jpg"), tex(`data/tex_rem_${remStyle}.jpg`), tex("data/tex_roads.png"), tex("data/tex_streams.png")])
     .then(([j, im, ti, tl, tr, tro, ts]) => {
-      tj = j; U.tImg.value = ti; U.tLid.value = tl; U.tRem.value = tr; U.tRoad.value = tro; U.tStr.value = ts; build(im); resize();
+      tj = j; U.tImg.value = ti; U.tLid.value = tl; U.tRem.value = tr; remTex[remStyle] = tr; U.tRoad.value = tro; U.tStr.value = ts; build(im); setRem(remStyle, true); resize();
+      $$("#remPick button").forEach(b => b.addEventListener("click", () => { setRem(b.dataset.r);
+        if (cur.rem < 0.5) { if (!manual) { manual = true; want.lidar = 1; want.streams = cur.streams > 0.02; want.roads = cur.roads > 0.02; } want.rem = true; want.lidar = 1; } kick(); }));
       stat.hidden = true;
       if (reduced) { manual = true; Object.assign(cur, { wipe: 1, streams: 1, roads: 1, rem: 1 }); ft = DUR * 1.02; camAt(ft); kick(); }
       else { camAt(0); kick(); setTimeout(() => { if (!ctl.enabled && !manual) play(true); }, 700); }

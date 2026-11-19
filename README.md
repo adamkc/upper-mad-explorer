@@ -1,6 +1,8 @@
-# Upper Mad River Explorer
+# Upper Baduwa't Explorer
 
-A public web explorer for the Upper Mad River watershed assessment, prepared as a proposal for the Watershed Research and Training Center (WRTC) to host as the public face of a basin-wide Mad River assessment. It is a static site (GitHub Pages or any web host). Community input lands in a Google Sheet in WRTC's Drive, and nothing shows on the public map until a reviewer approves it there.
+Baduwa't is the Wiyot name for the river most maps label the Mad River; the explorer uses it throughout (`../dashboard/rename_river.py` applies it to the page and data after any rebuild). Folder and repository names keep "UpperMad" and "upper-mad".
+
+A public web explorer for the Upper Baduwa't watershed assessment, prepared as a proposal for the Watershed Research and Training Center (WRTC) to host as the public face of a basin-wide Baduwa't assessment. It is a static site (GitHub Pages or any web host). Community input lands in a Google Sheet in WRTC's Drive, and nothing shows on the public map until a reviewer approves it there.
 
 ## What's in this repository
 
@@ -39,7 +41,7 @@ then open http://localhost:8000.
 
 Same setup as the Lost Meadows map's download log: a Google Sheet with a small Apps Script deployed as a web app. No server, no accounts for the public, no cost.
 
-1. **Create the Sheet.** In WRTC's Google Drive: New > Google Sheets. Name it, for example, `Mad River explorer input`.
+1. **Create the Sheet.** In WRTC's Google Drive: New > Google Sheets. Name it, for example, `Baduwa't explorer input`.
 2. **Add the script.** In that Sheet: **Extensions > Apps Script**. Delete the stub code, paste the contents of [`sheets/Code.gs`](sheets/Code.gs), and save.
 3. **Deploy as a web app.** **Deploy > New deployment**, gear icon, **Web app**:
    - **Execute as:** Me
@@ -63,7 +65,7 @@ Same setup as the Lost Meadows map's download log: a Google Sheet with a small A
 
 ### What the script checks
 
-- Locations must fall inside the Mad River basin envelope; text is trimmed to length limits; place types must be one of the seven on the form.
+- Locations must fall inside the Baduwa't basin envelope; text is trimmed to length limits; place types must be one of the seven on the form.
 - A hidden form field catches simple bots, and cells that start with `= + - @` are stored as text so they can't run as formulas.
 - The public never gives an email address or signs in. A display name is optional.
 - The `/exec` URL is public, so junk rows are possible. They never show without approval. If it gets spammed, make a new deployment (the old URL stops working) and update `config.js`.
@@ -106,7 +108,7 @@ The layers in `data/` come from the assessment's build scripts in `../dashboard/
 | `build_3d_layers.py` | the flight's layer textures: NAIP imagery, lidar hillshade, and the stream and road lines with their paint-in times |
 | `build_basin_svg.py` | the whole-basin outline map |
 
-The 3D flight itself is `../dashboard/three_flight.js`; `splice_three.py` copies it into the page source and rebuilds both pages. Each new subwatershed (Middle Mad, then Lower Mad) runs through the same lidar toolkit and is added the same way.
+The 3D flight itself is `../dashboard/three_flight.js`; `splice_three.py` copies it into the page source and rebuilds both pages. Each new subwatershed (Middle Baduwa't, then Lower Baduwa't) runs through the same lidar toolkit and is added the same way.
 
 Sources shown in the flight: USDA NAIP imagery through the USGS National Map, and USGS 3DEP lidar (2022 and 2023 collections).
 

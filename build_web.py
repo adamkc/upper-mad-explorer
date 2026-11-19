@@ -12,9 +12,9 @@ def rep(a, b, count=1):
 
 # ---- document shell, local libraries ----
 rep("/*MAPLIBRE_CSS*/", "")
-rep("<title>Upper Mad River Explorer</title>\n<meta name=\"claude:viewport-fit-sides\" content=\"cover\">",
+rep("<title>Upper Baduwa't Explorer</title>\n<meta name=\"claude:viewport-fit-sides\" content=\"cover\">",
     "<!doctype html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width,initial-scale=1,viewport-fit=cover\">\n"
-    "<title>Upper Mad River Explorer</title>\n<meta name=\"description\" content=\"Lidar assessment of the Upper Mad River: forests, roads, floodplains and crossings, with community places and road-project sketches.\">\n"
+    "<title>Upper Baduwa't Explorer</title>\n<meta name=\"description\" content=\"Lidar assessment of the Upper Baduwa't: forests, roads, floodplains and crossings, with community places and road-project sketches.\">\n"
     "<link rel=\"stylesheet\" href=\"vendor/maplibre-gl.css\">")
 rep("<header class=\"top wrap\">", "</head>\n<body>\n<header class=\"top wrap\">")
 rep("*{box-sizing:border-box}", "*{box-sizing:border-box}\nhtml{color-scheme:light}\nbody{margin:0}\n[hidden]{display:none!important}\nimg{max-width:100%}\n.hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}\n.mode{font-size:12px;padding:6px 9px;border-radius:7px;background:var(--shade)}")
@@ -118,13 +118,13 @@ PITCH = """    <div class="sec">
       <div class="cards" style="grid-template-columns:repeat(3,minmax(0,1fr))">
         <div class="card"><h3>Owned and open</h3><p>The layers are open files (GeoJSON, GeoPackage) in WRTC's own repository, and the site runs on free static hosting. No paid platform and no software licenses.</p></div>
         <div class="card"><h3>Reviewed</h3><p>Every entry arrives in the review sheet as pending. Nothing shows until a reviewer marks it approved, so sensitive places stay off the public map. No contact details are collected.</p></div>
-        <div class="card"><h3>Repeatable</h3><p>Each subwatershed goes through the same pipeline and lands in the same tables, so the Middle and Lower Mad drop in beside the Upper Mad.</p></div>
+        <div class="card"><h3>Repeatable</h3><p>Each subwatershed goes through the same pipeline and lands in the same tables, so the Middle and Lower Baduwa't drop in beside the Upper Baduwa't.</p></div>
       </div>
     </div>
 """
 rep("  </div>\n</section>\n\n<!-- ============ TAB 2: WHAT WE FOUND ============ -->", PITCH + "  </div>\n</section>\n\n<!-- ============ TAB 2: WHAT WE FOUND ============ -->")
-rep("<footer class=\"foot wrap\"><div class=\"inner\">Upper Mad River watershed assessment, 2026.",
-    "<footer class=\"foot wrap\"><div class=\"inner\">Draft prepared for the Watershed Research and Training Center. Upper Mad River watershed assessment, 2026.")
+rep("<footer class=\"foot wrap\"><div class=\"inner\">Upper Baduwa't watershed assessment, 2026.",
+    "<footer class=\"foot wrap\"><div class=\"inner\">Draft prepared for the Watershed Research and Training Center. Upper Baduwa't watershed assessment, 2026.")
 
 # ---- replace the claude.ai storage and the two contribute tabs ----
 a = s.index("/* ---------------- shared store (db) ---------------- */"); b = s.index("show(location.hash.slice(1));")

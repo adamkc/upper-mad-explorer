@@ -146,11 +146,11 @@ function setCircle(c, r, example){
   circ = { c, r }; $("#exTag").hidden = !example; $("#radV").textContent = (r / 1000).toFixed(2) + " km";
   mapR.getSource("circ").setData({ type: "FeatureCollection", features: [{ type: "Feature", geometry: { type: "Polygon", coordinates: [ring(c, r)] }, properties: {} }] });
   const inside = XS.filter(x => dist(c, [x[0], x[1]]) <= r);
-  // x[7] = 1 when the crossing sits on a road the lidar classes as closed or an old road now used as a trail
-  const shut = inside.filter(x => x[7] === 1), open = inside.filter(x => x[7] !== 1);
-  sel = { n: inside.length, cul: open.filter(x => x[2] === "c").length, uni: open.filter(x => x[2] === "u").length, div: open.filter(x => x[3] === 1).length,
-    fillOpen: open.reduce((s, x) => s + x[4], 0), shut: shut.length, fillShut: shut.reduce((s, x) => s + x[4], 0),
-    divAll: inside.filter(x => x[3] === 1).length, fill: inside.reduce((s, x) => s + x[4], 0), deb: inside.filter(x => x[5] === 3).length };
+  // x[7] = road class at the crossing: 0 main, 1 forest, 2 closed, 3 trail on an old road, 4 trail, 5 skid trail (2-5: out of service)
+  const grp = g => inside.filter(x => (x[7] == null ? 1 : Math.min(2, x[7])) === g), cnt = (Q, f) => Q.filter(f).length, fsum = Q => Q.reduce((s, x) => s + x[4], 0);
+  const side = Q => ({ n: Q.length, cul: cnt(Q, x => x[2] === "c"), uni: cnt(Q, x => x[2] === "u"), div: cnt(Q, x => x[3] === 1), fill: fsum(Q) });
+  sel = { n: inside.length, M: side(grp(0)), F: side(grp(1)), O: side(grp(2)), divAll: cnt(inside, x => x[3] === 1), fill: fsum(inside), deb: cnt(inside, x => x[5] === 3) };
+  sel.shut = sel.O.n;
   const mi = c_ => RSEG.reduce((s, q) => s + (q[3] === c_ && dist(c, [q[0], q[1]]) <= r ? q[2] : 0), 0) / 1609.34;
   sel.miMain = mi(0); sel.miForest = mi(1); sel.miShut = mi(2) + mi(3) + mi(5);
   $("#selBig").innerHTML = `<div><b class="num">${fmt(sel.n)}</b><span>crossings inside</span></div><div><b class="num">${fmt(sel.divAll)}</b><span>could divert</span></div><div><b class="num">${fmt(sel.fill)}</b><span>m³ of fill</span></div>`;
@@ -158,27 +158,45 @@ function setCircle(c, r, example){
 }
 $("#rad").addEventListener("input", () => { if (circ) setCircle(circ.c, +$("#rad").value, !$("#exTag").hidden); });
 $("#bDraw").addEventListener("click", () => { drawMode = "center"; $("#drawHint").hidden = false; $("#drawHint").textContent = "Click the center of the project area"; });
-["cShare", "cRep", "cCul", "cFord", "cDip", "cStorm", "cFill", "cClose", "cAss", "cOH"].forEach(id => $("#" + id).addEventListener("input", calc));
+["cShare", "cRep", "cCul", "cClean", "cFord", "cDip", "cStorm", "cFill", "cPull", "cOut", "cRec", "cAss", "cOH"].forEach(id => $("#" + id).addEventListener("input", calc));
+$$("#cTreat button").forEach(b => b.addEventListener("click", () => { TREAT = b.dataset.t; $$("#cTreat button").forEach(x => x.setAttribute("aria-pressed", String(x === b))); $("#cTreatH").textContent = TREATS[TREAT][1]; calc(); }));
 $("#prYear").addEventListener("change", () => renderProj());
 const val = id => Math.max(0, +$("#" + id).value || 0);
-function cost(s){
-  const v = id => Math.max(0, +$("#" + id).value || 0), keep = 1 - Math.min(100, v("cShare")) / 100, rep = Math.min(100, v("cRep")) / 100;
-  // crossings: kept-open culverts are replaced where needed, unimproved crossings piped or armored, a critical dip where they
-  // could divert; crossings on roads being closed have their fill dug out. Roads: forest roads kept open are storm-proofed,
-  // closed roads get ripped and outsloped between crossings, and every road but a trail is assessed first.
-  const a = s.cul * keep * rep * v("cCul"), u = s.uni * keep * v("cFord"), b = s.div * keep * v("cDip");
-  const c = (s.fillShut + s.fillOpen * (1 - keep)) * v("cFill");
-  const miClose = s.miShut + s.miForest * (1 - keep), miStorm = s.miForest * keep, miAll = s.miMain + s.miForest + s.miShut;
-  const rd = miStorm * v("cStorm") + miClose * v("cClose"), as = miAll * v("cAss");
-  const oh = (a + u + b + c + rd) * v("cOH") / 100, tot = a + u + b + c + rd + as + oh;
-  return { a, u, b, c, rd, as, oh, tot, miAll, miClose, closed: Math.round(s.shut + (s.cul + s.uni) * (1 - keep)) };
+// unit costs: [low, typical, high]; the typical value is the editable input, and the range scales it by the published spread
+const UC = { cCul: [20000, 35000, 60000], cClean: [1000, 2000, 3500], cFord: [8000, 15000, 25000], cDip: [1200, 2500, 4000], cStorm: [6000, 12000, 20000],
+  cFill: [17, 28, 38], cPull: [2000, 4000, 8000], cOut: [10000, 20000, 35000], cRec: [60000, 120000, 300000], cAss: [3700, 4300, 4800], cOH: [15, 20, 30] };
+const TREATS = { pull: ["crossings pulled", "Cheapest: dig out the crossing fill and pipes, add cross-drains, leave the road bench."],
+  outslope: ["crossings pulled, road outsloped", "Pull the crossings, then rip and outslope the road so it sheds water across its width."],
+  recontour: ["fully recontoured", "Most expensive: pull the crossings and put the road fill back against the cut slope."] };
+let TREAT = "pull";
+function cost(s, which = 1){
+  const v = id => { const t = Math.max(0, +$("#" + id).value || 0), r = UC[id]; return r ? t * r[which] / r[1] : t; };
+  const pct = id => Math.min(100, Math.max(0, +$("#" + id).value || 0)) / 100, keep = 1 - pct("cShare"), rep = pct("cRep");
+  // main roads stay in service; forest roads keep their crossings except the share taken out; out-of-service roads lose theirs
+  const cul = s.M.cul + s.F.cul * keep, uni = s.M.uni + s.F.uni * keep, div = s.M.div + s.F.div * keep;
+  const a = cul * (rep * v("cCul") + (1 - rep) * v("cClean")), u = uni * v("cFord"), b = div * v("cDip");
+  const c = (s.O.fill + s.F.fill * (1 - keep)) * v("cFill");
+  const miOut = s.miShut + s.miForest * (1 - keep), miStorm = s.miForest * keep, miAll = s.miMain + s.miForest + s.miShut;
+  const rd = miStorm * v("cStorm") + miOut * v(TREAT === "pull" ? "cPull" : TREAT === "outslope" ? "cOut" : "cRec"), as = miAll * v("cAss");
+  const sub = a + u + b + c + rd, oh = sub * v("cOH") / 100;
+  return { a, u, b, c, rd, as, oh, tot: sub + as + oh, miAll, miOut, closed: Math.round(s.O.n + s.F.n * (1 - keep)) };
+}
+// likely range: each item's spread combined as if the prices vary independently (root-sum-square), so it is narrower than
+// every price at its low or high at once, which the note also gives
+function range(s){
+  const L = cost(s, 0), T = cost(s, 1), H = cost(s, 2), f = 1 + T.oh / Math.max(1, T.a + T.u + T.b + T.c + T.rd);
+  let dl = 0, dh = 0;
+  ["a", "u", "b", "c", "rd"].forEach(k => { dl += ((T[k] - L[k]) * f) ** 2; dh += ((H[k] - T[k]) * f) ** 2; });
+  dl += (T.as - L.as) ** 2 + (T.oh * (1 - UC.cOH[0] / UC.cOH[1])) ** 2; dh += (H.as - T.as) ** 2 + (T.oh * (UC.cOH[2] / UC.cOH[1] - 1)) ** 2;
+  return { lo: T.tot - Math.sqrt(dl), hi: T.tot + Math.sqrt(dh), min: L.tot, max: H.tot };
 }
 function calc(){
-  if (!sel) return; const k = cost(sel);
-  $("#costTot").textContent = money(k.tot);
+  $("#cShareV").textContent = $("#cShare").value + "%"; $("#cRepV").textContent = $("#cRep").value + "%";
+  if (!sel) return; const k = cost(sel), rg = range(sel), lo = rg.lo, hi = rg.hi;
+  $("#costTot").textContent = `${money(lo)} – ${money(hi)}`;
   const parts = [[k.a, "var(--water)", "culverts"], [k.u, "var(--teal)", "unimproved crossings"], [k.b, "var(--fire)", "dips"], [k.c, "var(--rust)", "fill removal"], [k.rd, "var(--gold)", "road work"], [k.as + k.oh, "var(--muted)", "assessment and design"]];
   $("#costStack").innerHTML = k.tot ? parts.map(p => `<span title="${p[2]}" style="width:${p[0] / k.tot * 100}%;background:${p[1]}"></span>`).join("") : "";
-  $("#costNote").textContent = `${fmt(k.closed)} of ${fmt(sel.n)} crossings closed (${fmt(sel.shut)} already on closed or abandoned roads), the rest kept open; ${fmt(Math.round(k.miAll))} miles of road in the area, ${fmt(Math.round(k.miClose))} of them closed. About ${money(k.miAll ? k.tot / k.miAll : 0)} per mile of road. ${fmt(sel.deb)} crossings sit on high debris-flow hazard channels. Bars: culverts, unimproved crossings, dips, fill removal, road work, assessment and design.`;
+  $("#costNote").textContent = `Likely range; typical ${money(k.tot)}, and ${money(rg.min)} to ${money(rg.max)} with every price at its low or high at once. ${fmt(k.closed)} of ${fmt(sel.n)} crossings come out with their roads (${fmt(sel.shut)} already on roads out of service); the rest stay in service. ${fmt(Math.round(k.miAll))} miles of road in the area, ${fmt(Math.round(k.miOut))} leave service (${TREATS[TREAT][0]}). About ${money(k.miAll ? lo / k.miAll : 0)} to ${money(k.miAll ? hi / k.miAll : 0)} per mile of road. ${fmt(sel.deb)} crossings sit on high debris-flow hazard channels. Bars show the typical cost: culverts, unimproved crossings, dips, fill removal, road work, assessment and design.`;
   if (!APROJ.length && !(LIVE && mine("project_sketches").length)) chart([]);
 }
 $("#bSaveProj").addEventListener("click", async () => {
@@ -187,7 +205,7 @@ $("#bSaveProj").addEventListener("click", async () => {
   const k = cost(sel);
   const row = { name: ($("#prName").value.trim() || "Unnamed sketch").slice(0, 70), lead: $("#prLead").value.trim().slice(0, 70) || null, start_year: +$("#prYear").value,
     lng: +circ.c[0].toFixed(5), lat: +circ.c[1].toFixed(5), radius_m: Math.round(circ.r), crossings: sel.n, diversion_prone: sel.divAll, fill_m3: Math.round(sel.fill),
-    cost_usd: Math.round(k.tot), unit_costs: { culvert: val("cCul"), dip: val("cDip"), close_share_pct: val("cShare"), fill_per_m3: val("cFill"), overhead_pct: val("cOH") } };
+    cost_usd: Math.round(k.tot), unit_costs: { range_usd: [Math.round(range(sel).lo), Math.round(range(sel).hi)], out_of_service_treatment: TREAT, forest_out_pct: val("cShare"), culvert_replace_pct: val("cRep"), culvert: val("cCul"), culvert_clean: val("cClean"), unimproved: val("cFord"), dip: val("cDip"), stormproof_per_mi: val("cStorm"), fill_per_m3: val("cFill"), pull_per_mi: val("cPull"), outslope_per_mi: val("cOut"), recontour_per_mi: val("cRec"), assess_per_mi: val("cAss"), overhead_pct: val("cOH") } };
   $("#projStatus").textContent = "Sending…";
   try {
     const rec = await store.add("project_sketches", row);

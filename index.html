@@ -719,10 +719,10 @@ function initThree(){
     $("#leg3dRoads").innerHTML = rc.map(c => `<div><b style="background:${c.color}"></b>${esc3(c.name)}</div>`).join("");
   }
   // floodplain palettes (build_rem_styles.py): REM rebuilt at 1 m, each with its own stretch and legend
-  const REMNOTE = { glow: "The glowing ground sits within 2 m of the river: room for the water to spread out again.",
-    copper: "The darkest ground sits within 2 m of the river: room for the water to spread out again.",
-    dusk: "The darkest ground sits within 2 m of the river; the color shifts from teal downstream to rust upstream.",
-    teal: "Dark teal ground sits within 2 m of the river: room for the water to spread out again." };
+  const REMNOTE = { glow: "Color marks the valley floor, up to 5 m above the river; the glowing ground sits within a meter or two of the water.",
+    copper: "Color marks the valley floor, up to 5 m above the river; the darkest ground sits within a meter or two of the water.",
+    dusk: "Color marks the valley floor, up to 5 m above the river, shifting from teal downstream to rust upstream.",
+    teal: "Color marks the valley floor, up to 5 m above the river; the darkest teal sits within a meter or two of the water." };
   const DARK = { glow: 1 }, remTex = {};
   let remStyle = "glow";
   function setRem(k, first){
@@ -732,7 +732,7 @@ function initThree(){
     $$("#remPick button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.r === k)));
     const at = (p, l) => `<span style="left:${(p * 100).toFixed(1)}%">${l}</span>`;
     $("#remBar").style.background = `linear-gradient(90deg,${st.grad.join(",")})`;
-    $("#remTicks").innerHTML = at(0, "river") + Object.entries(st.ticks).map(([l, p]) => at(p, l)).join("") + at(1, st.top + " m");
+    $("#remTicks").innerHTML = at(0, "river") + Object.entries(st.ticks).map(([l, p]) => at(p, l)).join("") + at(1, st.topLabel || st.top + " m");
     const done = t => { remTex[k] = t; if (remStyle === k) { U.tRem.value = t; kick(); } };
     if (remTex[k]) done(remTex[k]); else if (!first) tex(`data/tex_rem_${k}.jpg`).then(done);
   }
